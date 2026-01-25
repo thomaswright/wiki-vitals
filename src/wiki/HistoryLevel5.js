@@ -21,11 +21,14 @@ const levelFromTag = (tag) => {
 
 export const fetchSections = async () => {
   const html = await fetch(pageHtmlUrl).then((r) => r.text());
+
   const doc = new DOMParser().parseFromString(html, "text/html");
+
   const nodes = doc.querySelectorAll("h2,h3,h4,h5,ul,ol,p");
 
   const sections = [];
   const stack = [];
+  const debug = true;
 
   const pushSection = (section) => {
     stack.push(section);
@@ -71,24 +74,60 @@ export const fetchSections = async () => {
         return;
       }
 
+      const normalizeHref = (href) => {
+        if (!href) return "";
+        if (href.startsWith("./")) {
+          return "/wiki/" + href.slice(2);
+        }
+        if (href.startsWith("../")) {
+          return "/wiki/" + href.replace(/^\.\.\/+/, "");
+        }
+        try {
+          const url = new URL(href, "https://en.wikipedia.org");
+          const path = url.pathname + url.search;
+          return path.startsWith("/wiki/") ? path : href;
+        } catch {
+          return href;
+        }
+      };
+
       if (tag === "P") {
-        const links = el.querySelectorAll("a[href^='/wiki/']");
+        const links = el.querySelectorAll("a[href]");
         links.forEach((a) => {
           const title = (a.textContent || "").trim();
-          const href = a.getAttribute("href");
+          const href = normalizeHref(a.getAttribute("href"));
           if (!title || !href) return;
           current.items.push({ title, href, children: [] });
         });
         return;
       }
 
+      const pickPrimaryLink = (li) => {
+        const anchors = Array.from(li.querySelectorAll("a[href]"));
+        const primary = anchors.find((a) => {
+          const rawHref = a.getAttribute("href") || "";
+          const href = normalizeHref(rawHref);
+          return (
+            href.startsWith("/wiki/") &&
+            !a.classList.contains("mw-file-description") &&
+            !href.startsWith("/wiki/File:")
+          );
+        });
+        return primary || null;
+      };
+
       const itemFromLi = (li) => {
         const clone = li.cloneNode(true);
         clone.querySelectorAll("ul,ol").forEach((child) => child.remove());
-        const title = (clone.textContent || "").trim();
+        const primaryLink = pickPrimaryLink(li);
+        const titleFromLink = primaryLink
+          ? (primaryLink.textContent || "").trim()
+          : "";
+        const title = titleFromLink || (clone.textContent || "").trim();
         if (!title) return null;
-        const link = li.querySelector("a[href^='/wiki/']");
-        const href = link ? link.getAttribute("href") : "";
+        const href = primaryLink
+          ? normalizeHref(primaryLink.getAttribute("href"))
+          : "";
         const childLists = li.querySelectorAll(":scope > ul, :scope > ol");
         const children = [];
         childLists.forEach((list) => {
@@ -102,6 +141,20 @@ export const fetchSections = async () => {
 
       const listItems = el.querySelectorAll(":scope > li");
       listItems.forEach((li) => {
+        if (debug) {
+          const anchors = Array.from(li.querySelectorAll("a[href]")).map(
+            (a) => ({
+              href: a.getAttribute("href"),
+              text: (a.textContent || "").trim(),
+              classes: a.getAttribute("class"),
+            }),
+          );
+          console.log(
+            "li",
+            (li.textContent || "").trim().slice(0, 120),
+            anchors,
+          );
+        }
         const item = itemFromLi(li);
         if (item) current.items.push(item);
       });

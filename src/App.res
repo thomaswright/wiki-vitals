@@ -7,7 +7,7 @@ let make = () => {
   let (filterText, setFilterText) = React.useState(() => "")
   let (expanded, setExpanded) = React.useState(() => Belt.Set.String.empty)
   let (expandedItems, setExpandedItems) = React.useState(() => Belt.Set.String.empty)
-
+  Console.log(sections)
   let rec collectKeys = (sections, prefix, acc) =>
     sections->Belt.Array.reduce(acc, (acc, section) => {
       let key = prefix ++ "/" ++ section.title
@@ -62,8 +62,7 @@ let make = () => {
           >
             {React.string(link.title)}
           </a>
-        | false =>
-          <span className="text-stone-700">{React.string(link.title)}</span>
+        | false => <span className="text-stone-700"> {React.string(link.title)} </span>
         }}
         {switch link.children->Belt.Array.length > 0 {
         | true =>
@@ -84,13 +83,13 @@ let make = () => {
       </div>
       {switch link.children->Belt.Array.length > 0 {
       | true =>
-        {switch isOpen {
+        switch isOpen {
         | true =>
           <ul className="ml-5 mt-2 list-disc text-sm text-stone-600">
             {link.children->Belt.Array.map(child => renderLink(child, key))->React.array}
           </ul>
         | false => React.null
-        }}
+        }
       | false => React.null
       }}
     </li>

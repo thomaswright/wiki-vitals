@@ -23,6 +23,7 @@ function App(props) {
   let match$4 = React.useState(() => {});
   let setExpandedItems = match$4[1];
   let expandedItems = match$4[0];
+  console.log(sections);
   let collectKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
     let key = prefix + "/" + section.title;
     let nextAcc = Belt_SetString.add(acc, key);
