@@ -23,6 +23,7 @@ export const fetchSections = async () => {
   const html = await fetch(pageHtmlUrl).then((r) => r.text());
 
   const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll(".navbox").forEach((el) => el.remove());
 
   const nodes = doc.querySelectorAll("h2,h3,h4,h5,ul,ol,p");
 
