@@ -40,6 +40,9 @@ function App(props) {
   ]));
   let setSelectedLevels = match$5[1];
   let selectedLevels = match$5[0];
+  let match$6 = React.useState(() => true);
+  let setShowHeaders = match$6[1];
+  let showHeaders = match$6[0];
   console.log(sections);
   let collectKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
     let key = prefix + "/" + section.title;
@@ -165,42 +168,57 @@ function App(props) {
   let renderSection = (section, keyPrefix) => {
     let key = keyPrefix + "/" + section.title;
     let isOpen = Belt_SetString.has(expanded, key);
-    return JsxRuntime.jsxs("div", {
-      children: [
-        JsxRuntime.jsxs("div", {
-          children: [
-            JsxRuntime.jsx("span", {
-              children: section.title
-            }),
-            JsxRuntime.jsx("button", {
-              children: isOpen ? "−" : "+",
-              className: "rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300",
-              onClick: param => setExpanded(prev => {
-                if (Belt_SetString.has(prev, key)) {
-                  return Belt_SetString.remove(prev, key);
-                } else {
-                  return Belt_SetString.add(prev, key);
-                }
-              })
-            })
-          ],
-          className: "flex items-center gap-2 font-semibold text-stone-800"
-        }),
-        isOpen ? JsxRuntime.jsxs("div", {
+    if (showHeaders) {
+      return JsxRuntime.jsxs("div", {
+        children: [
+          JsxRuntime.jsxs("div", {
             children: [
-              section.items.length !== 0 ? JsxRuntime.jsx("ul", {
-                  children: Belt_Array.map(section.items, item => renderLink(item, key)),
-                  className: "ml-8 list-disc text-sm text-stone-700"
-                }) : null,
-              section.children.length !== 0 ? JsxRuntime.jsx("div", {
-                  children: Belt_Array.map(section.children, child => renderSection(child, key)),
-                  className: " border-stone-200"
-                }) : null
-            ]
-          }) : null
-      ],
-      className: "ml-4"
-    });
+              JsxRuntime.jsx("span", {
+                children: section.title
+              }),
+              JsxRuntime.jsx("button", {
+                children: isOpen ? "−" : "+",
+                className: "rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300",
+                onClick: param => setExpanded(prev => {
+                  if (Belt_SetString.has(prev, key)) {
+                    return Belt_SetString.remove(prev, key);
+                  } else {
+                    return Belt_SetString.add(prev, key);
+                  }
+                })
+              })
+            ],
+            className: "flex items-center gap-2 font-semibold text-stone-800"
+          }),
+          isOpen ? JsxRuntime.jsxs("div", {
+              children: [
+                section.items.length !== 0 ? JsxRuntime.jsx("ul", {
+                    children: Belt_Array.map(section.items, item => renderLink(item, key)),
+                    className: "ml-8 list-disc text-sm text-stone-700"
+                  }) : null,
+                section.children.length !== 0 ? JsxRuntime.jsx("div", {
+                    children: Belt_Array.map(section.children, child => renderSection(child, key)),
+                    className: " border-stone-200"
+                  }) : null
+              ]
+            }) : null
+        ],
+        className: "ml-4"
+      });
+    } else {
+      return JsxRuntime.jsxs("div", {
+        children: [
+          section.items.length !== 0 ? JsxRuntime.jsx("ul", {
+              children: Belt_Array.map(section.items, item => renderLink(item, key)),
+              className: "ml-4 list-disc text-sm text-stone-700"
+            }) : null,
+          section.children.length !== 0 ? JsxRuntime.jsx("div", {
+              children: Belt_Array.map(section.children, child => renderSection(child, key)),
+              className: " border-stone-200"
+            }) : null
+        ]
+      });
+    }
   };
   return JsxRuntime.jsxs("div", {
     children: [
@@ -249,6 +267,13 @@ function App(props) {
                         }
                       })
                     }, level.toString());
+                  }),
+                  JsxRuntime.jsx("button", {
+                    children: showHeaders ? "Hide headers" : "Show headers",
+                    className: "rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wider " + (
+                      showHeaders ? "border-stone-200 bg-white text-stone-600 hover:border-stone-300" : "border-sky-300 bg-sky-50 text-sky-800"
+                    ),
+                    onClick: param => setShowHeaders(prev => !prev)
                   }),
                   JsxRuntime.jsx("button", {
                     children: "Expand all",

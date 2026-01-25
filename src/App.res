@@ -14,6 +14,7 @@ let make = () => {
   let (expandedItems, setExpandedItems) = React.useState(() => Belt.Set.String.empty)
   let (selectedLevels, setSelectedLevels) =
     React.useState(() => Belt.Set.Int.fromArray([1, 2, 3, 4, 5]))
+  let (showHeaders, setShowHeaders) = React.useState(() => true)
   Console.log(sections)
   let rec collectKeys = (sections, prefix, acc) =>
     sections->Belt.Array.reduce(acc, (acc, section) => {
@@ -171,22 +172,42 @@ let make = () => {
     let key = keyPrefix ++ "/" ++ section.title
     let isOpen = expanded->Belt.Set.String.has(key)
 
-    <div className="ml-4">
-      <div className="flex items-center gap-2 font-semibold text-stone-800">
-        <span> {React.string(section.title)} </span>
-        <button
-          className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
-          onClick={_ => toggleExpanded(key)}
-        >
-          {React.string(isOpen ? "−" : "+")}
-        </button>
-      </div>
-      {switch isOpen {
-      | true =>
-        <div>
+    showHeaders
+      ? <div className="ml-4">
+          <div className="flex items-center gap-2 font-semibold text-stone-800">
+            <span> {React.string(section.title)} </span>
+            <button
+              className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
+              onClick={_ => toggleExpanded(key)}
+            >
+              {React.string(isOpen ? "−" : "+")}
+            </button>
+          </div>
+          {switch isOpen {
+          | true =>
+            <div>
+              {switch section.items->Belt.Array.length > 0 {
+              | true =>
+                <ul className="ml-8 list-disc text-sm text-stone-700">
+                  {section.items->Belt.Array.map(item => renderLink(item, key))->React.array}
+                </ul>
+              | false => React.null
+              }}
+              {switch section.children->Belt.Array.length > 0 {
+              | true =>
+                <div className=" border-stone-200">
+                  {section.children->Belt.Array.map(child => renderSection(child, key))->React.array}
+                </div>
+              | false => React.null
+              }}
+            </div>
+          | false => React.null
+          }}
+        </div>
+      : <div>
           {switch section.items->Belt.Array.length > 0 {
           | true =>
-            <ul className="ml-8 list-disc text-sm text-stone-700">
+            <ul className="ml-4 list-disc text-sm text-stone-700">
               {section.items->Belt.Array.map(item => renderLink(item, key))->React.array}
             </ul>
           | false => React.null
@@ -199,9 +220,6 @@ let make = () => {
           | false => React.null
           }}
         </div>
-      | false => React.null
-      }}
-    </div>
   }
 
   <div className="mx-auto max-w-5xl p-6">
@@ -246,6 +264,17 @@ let make = () => {
             </button>
           })
           ->React.array}
+          <button
+            className={
+              "rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wider " ++
+              (showHeaders
+                 ? "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
+                 : "border-sky-300 bg-sky-50 text-sky-800")
+            }
+            onClick={_ => setShowHeaders(prev => !prev)}
+          >
+            {React.string(showHeaders ? "Hide headers" : "Show headers")}
+          </button>
           <button
             className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
             onClick={_ => expandAll()}
