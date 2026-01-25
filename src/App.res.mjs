@@ -2,12 +2,20 @@
 
 import * as React from "react";
 import * as Belt_Array from "@rescript/runtime/lib/es6/Belt_Array.js";
+import * as Belt_SetInt from "@rescript/runtime/lib/es6/Belt_SetInt.js";
 import * as HistoryLevel5 from "./wiki/HistoryLevel5.res.mjs";
 import * as Belt_SetString from "@rescript/runtime/lib/es6/Belt_SetString.js";
 import * as Stdlib_Promise from "@rescript/runtime/lib/es6/Stdlib_Promise.js";
 import * as JsxRuntime from "react/jsx-runtime";
 
 function App(props) {
+  let levelMatchesSelection = (selectedLevels, levelOpt) => {
+    if (levelOpt !== undefined) {
+      return Belt_SetInt.has(selectedLevels, levelOpt);
+    } else {
+      return false;
+    }
+  };
   let match = React.useState(() => {});
   let setSections = match[1];
   let sections = match[0];
@@ -23,6 +31,15 @@ function App(props) {
   let match$4 = React.useState(() => {});
   let setExpandedItems = match$4[1];
   let expandedItems = match$4[0];
+  let match$5 = React.useState(() => Belt_SetInt.fromArray([
+    1,
+    2,
+    3,
+    4,
+    5
+  ]));
+  let setSelectedLevels = match$5[1];
+  let selectedLevels = match$5[0];
   console.log(sections);
   let collectKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
     let key = prefix + "/" + section.title;
@@ -71,7 +88,7 @@ function App(props) {
                     children: link.title,
                     className: "text-stone-700"
                   }),
-                level !== undefined ? JsxRuntime.jsx("span", {
+                level !== undefined && level !== 5 ? JsxRuntime.jsx("span", {
                     children: level.toString(),
                     className: "ml-1"
                   }) : null
@@ -101,17 +118,12 @@ function App(props) {
   };
   let query = filterText.toLowerCase();
   let filterSection = section => {
-    if (query === "") {
-      return section;
-    }
     let titleMatch = section.title.toLowerCase().includes(query);
-    if (titleMatch) {
-      return section;
-    }
     let filterItem = item => {
+      let levelMatch = levelMatchesSelection(selectedLevels, item.level);
       let itemMatch = item.title.toLowerCase().includes(query);
       let children = Belt_Array.keepMap(item.children, filterItem);
-      if (itemMatch || children.length !== 0) {
+      if (levelMatch && (query === "" || itemMatch) || children.length !== 0) {
         return {
           title: item.title,
           href: item.href,
@@ -122,13 +134,26 @@ function App(props) {
     };
     let items = Belt_Array.keepMap(section.items, filterItem);
     let children = Belt_Array.keepMap(section.children, filterSection);
-    if (items.length !== 0 || children.length !== 0) {
+    if (query === "") {
+      if (items.length !== 0 || children.length !== 0) {
+        return {
+          title: section.title,
+          level: section.level,
+          items: items,
+          children: children
+        };
+      } else {
+        return;
+      }
+    } else if (titleMatch || items.length !== 0 || children.length !== 0) {
       return {
         title: section.title,
         level: section.level,
         items: items,
         children: children
       };
+    } else {
+      return;
     }
   };
   let expandAll = () => {
@@ -203,6 +228,28 @@ function App(props) {
               }),
               JsxRuntime.jsxs("div", {
                 children: [
+                  Belt_Array.map([
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ], level => {
+                    let isSelected = Belt_SetInt.has(selectedLevels, level);
+                    return JsxRuntime.jsx("button", {
+                      children: "Level " + level.toString(),
+                      className: "rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wider " + (
+                        isSelected ? "border-sky-300 bg-sky-50 text-sky-800" : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
+                      ),
+                      onClick: param => setSelectedLevels(prev => {
+                        if (Belt_SetInt.has(prev, level)) {
+                          return Belt_SetInt.remove(prev, level);
+                        } else {
+                          return Belt_SetInt.add(prev, level);
+                        }
+                      })
+                    }, level.toString());
+                  }),
                   JsxRuntime.jsx("button", {
                     children: "Expand all",
                     className: "rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
@@ -217,7 +264,7 @@ function App(props) {
                     }
                   })
                 ],
-                className: "flex gap-2"
+                className: "flex flex-wrap gap-2"
               })
             ],
             className: "mt-4 flex flex-col gap-3 md:flex-row md:items-center"

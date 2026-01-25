@@ -2,11 +2,18 @@ open HistoryLevel5
 
 @react.component
 let make = () => {
+  let levelMatchesSelection = (selectedLevels, levelOpt: option<int>) =>
+    switch levelOpt {
+    | Some(level) => selectedLevels->Belt.Set.Int.has(level)
+    | None => false
+    }
   let (sections, setSections) = React.useState(() => None)
   let (error, setError) = React.useState(() => None)
   let (filterText, setFilterText) = React.useState(() => "")
   let (expanded, setExpanded) = React.useState(() => Belt.Set.String.empty)
   let (expandedItems, setExpandedItems) = React.useState(() => Belt.Set.String.empty)
+  let (selectedLevels, setSelectedLevels) =
+    React.useState(() => Belt.Set.Int.fromArray([1, 2, 3, 4, 5]))
   Console.log(sections)
   let rec collectKeys = (sections, prefix, acc) =>
     sections->Belt.Array.reduce(acc, (acc, section) => {
@@ -68,7 +75,9 @@ let make = () => {
           }}
           {switch link.level {
           | None => React.null
-          | Some(level) => <span className="ml-1"> {React.string(Int.toString(level))} </span>
+          | Some(level) => level == 5
+            ? React.null
+            : <span className="ml-1"> {React.string(Int.toString(level))} </span>
           }}
         </span>
 
@@ -106,34 +115,34 @@ let make = () => {
   let query = filterText->String.toLowerCase
 
   let rec filterSection = (section: HistoryLevel5.section) => {
-    if query == "" {
-      Some(section)
-    } else {
-      let titleMatch = section.title->String.toLowerCase->String.includes(query)
-      if titleMatch {
-        Some(section)
-      } else {
-        let rec filterItem = (item: HistoryLevel5.link) => {
-          let itemMatch = item.title->String.toLowerCase->String.includes(query)
-          let children = item.children->Belt.Array.keepMap(filterItem)
-          if itemMatch {
-            Some({...item, children})
-          } else {
-            switch children->Belt.Array.length > 0 {
-            | true => Some({...item, children})
-            | false => None
-            }
-          }
-        }
+    let titleMatch = section.title->String.toLowerCase->String.includes(query)
 
-        let items = section.items->Belt.Array.keepMap(filterItem)
-        let children = section.children->Belt.Array.keepMap(filterSection)
-        if items->Belt.Array.length > 0 || children->Belt.Array.length > 0 {
-          Some({...section, items, children})
-        } else {
-          None
-        }
+    let rec filterItem = (item: HistoryLevel5.link) => {
+      let levelMatch = levelMatchesSelection(selectedLevels, item.level)
+      let itemMatch = item.title->String.toLowerCase->String.includes(query)
+      let children = item.children->Belt.Array.keepMap(filterItem)
+      if levelMatch && (query == "" || itemMatch) {
+        Some({...item, children})
+      } else if children->Belt.Array.length > 0 {
+        Some({...item, children})
+      } else {
+        None
       }
+    }
+
+    let items = section.items->Belt.Array.keepMap(filterItem)
+    let children = section.children->Belt.Array.keepMap(filterSection)
+
+    if query == "" {
+      if items->Belt.Array.length > 0 || children->Belt.Array.length > 0 {
+        Some({...section, items, children})
+      } else {
+        None
+      }
+    } else if titleMatch || items->Belt.Array.length > 0 || children->Belt.Array.length > 0 {
+      Some({...section, items, children})
+    } else {
+      None
     }
   }
 
@@ -213,7 +222,30 @@ let make = () => {
           onChange={event => setFilterText(_ => (event->ReactEvent.Form.target)["value"])}
           className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none"
         />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {[1, 2, 3, 4, 5]
+          ->Belt.Array.map(level => {
+            let isSelected = selectedLevels->Belt.Set.Int.has(level)
+            <button
+              key={Int.toString(level)}
+              className={
+                "rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wider " ++
+                (isSelected
+                   ? "border-sky-300 bg-sky-50 text-sky-800"
+                   : "border-stone-200 bg-white text-stone-600 hover:border-stone-300")
+              }
+              onClick={_ =>
+                setSelectedLevels(prev =>
+                  prev->Belt.Set.Int.has(level)
+                    ? prev->Belt.Set.Int.remove(level)
+                    : prev->Belt.Set.Int.add(level)
+                )
+              }
+            >
+              {React.string("Level " ++ Int.toString(level))}
+            </button>
+          })
+          ->React.array}
           <button
             className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
             onClick={_ => expandAll()}

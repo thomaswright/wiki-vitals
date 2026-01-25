@@ -28,7 +28,7 @@ export const fetchSections = async () => {
 
   const sections = [];
   const stack = [];
-  const debug = true;
+  const debug = false;
 
   const pushSection = (section) => {
     stack.push(section);
@@ -135,7 +135,7 @@ export const fetchSections = async () => {
           const title = (a.textContent || "").trim();
           const href = normalizeHref(a.getAttribute("href"));
           if (!title || !href) return;
-          current.items.push({ title, href, level: undefined, children: [] });
+          current.items.push({ title, href, level: 5, children: [] });
         });
         return;
       }
@@ -158,13 +158,13 @@ export const fetchSections = async () => {
       const itemFromLi = (li) => {
         const clone = li.cloneNode(true);
         clone.querySelectorAll("ul,ol").forEach((child) => child.remove());
-        const level = levelFromNode(clone);
+        const rawLevel = levelFromNode(clone);
         const primaryLink = pickPrimaryLink(li);
         const titleFromLink = primaryLink
           ? (primaryLink.textContent || "").trim()
           : "";
         let title = titleFromLink || (clone.textContent || "").trim();
-        if (level) {
+        if (rawLevel) {
           title = stripLevelSuffix(title);
         }
         if (!title) return null;
@@ -179,7 +179,8 @@ export const fetchSections = async () => {
             if (childItem) children.push(childItem);
           });
         });
-        return { title, href: href || "", level: level || undefined, children };
+        const level = rawLevel || 5;
+        return { title, href: href || "", level, children };
       };
 
       const listItems = el.querySelectorAll(":scope > li");
