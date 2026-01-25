@@ -4,11 +4,21 @@ open HistoryLevel5
 let make = () => {
   let (sections, setSections) = React.useState(() => None)
   let (error, setError) = React.useState(() => None)
+  let (filterText, setFilterText) = React.useState(() => "")
+  let (expanded, setExpanded) = React.useState(() => Belt.Set.String.empty)
+
+  let rec collectKeys = (sections, prefix, acc) =>
+    sections->Belt.Array.reduce(acc, (acc, section) => {
+      let key = prefix ++ "/" ++ section.title
+      let nextAcc = acc->Belt.Set.String.add(key)
+      collectKeys(section.children, key, nextAcc)
+    })
 
   React.useEffect0(() => {
     HistoryLevel5.fetchSections()
     ->Promise.then(sections => {
       setSections(_ => Some(sections))
+      setExpanded(_ => collectKeys(sections, "root", Belt.Set.String.empty))
       Promise.resolve()
     })
     ->Promise.catch(_ => {
@@ -34,20 +44,69 @@ let make = () => {
     </li>
   }
 
-  let rec renderSection = section => {
+  let query = filterText->Js.String2.toLowerCase
+
+  let rec filterSection = section => {
+    if query == "" {
+      Some(section)
+    } else {
+      let titleMatch = section.title->Js.String2.toLowerCase->Js.String2.includes(query)
+      if titleMatch {
+        Some(section)
+      } else {
+        let items =
+          section.items->Belt.Array.keep(item =>
+            item.title->Js.String2.toLowerCase->Js.String2.includes(query)
+          )
+        let children = section.children->Belt.Array.keepMap(filterSection)
+        if items->Belt.Array.length > 0 || children->Belt.Array.length > 0 {
+          Some({...section, items, children})
+        } else {
+          None
+        }
+      }
+    }
+  }
+
+  let toggleExpanded = key => {
+    setExpanded(prev =>
+      prev->Belt.Set.String.has(key)
+        ? prev->Belt.Set.String.remove(key)
+        : prev->Belt.Set.String.add(key)
+    )
+  }
+
+  let rec renderSection = (section, keyPrefix) => {
+    let key = keyPrefix ++ "/" ++ section.title
+    let isOpen = expanded->Belt.Set.String.has(key)
+
     <div className="my-4">
-      <div className="text-lg font-semibold text-stone-800"> {React.string(section.title)} </div>
-      {switch section.items->Belt.Array.length > 0 {
+      <div className="flex items-center gap-2 text-lg font-semibold text-stone-800">
+        <button
+          className="rounded border border-stone-200 px-2 py-1 text-xs uppercase tracking-wider text-stone-600 hover:border-stone-300"
+          onClick={_ => toggleExpanded(key)}
+        >
+          {React.string(isOpen ? "Hide" : "Show")}
+        </button>
+        <span> {React.string(section.title)} </span>
+      </div>
+      {switch isOpen {
       | true =>
-        <ul className="ml-4 mt-2 list-disc text-sm text-stone-700">
-          {section.items->Belt.Array.map(renderLink)->React.array}
-        </ul>
-      | false => React.null
-      }}
-      {switch section.children->Belt.Array.length > 0 {
-      | true =>
-        <div className="ml-4 mt-3 border-l border-stone-200 pl-4">
-          {section.children->Belt.Array.map(renderSection)->React.array}
+        <div>
+          {switch section.items->Belt.Array.length > 0 {
+          | true =>
+            <ul className="ml-8 mt-2 list-disc text-sm text-stone-700">
+              {section.items->Belt.Array.map(renderLink)->React.array}
+            </ul>
+          | false => React.null
+          }}
+          {switch section.children->Belt.Array.length > 0 {
+          | true =>
+            <div className="ml-6 mt-3 border-l border-stone-200 pl-4">
+              {section.children->Belt.Array.map(child => renderSection(child, key))->React.array}
+            </div>
+          | false => React.null
+          }}
         </div>
       | false => React.null
       }}
@@ -65,6 +124,14 @@ let make = () => {
       <p className="mt-2 text-stone-600">
         {React.string("Browse and expand sections from the Vital Articles list.")}
       </p>
+      <div className="mt-4">
+        <input
+          value={filterText}
+          placeholder="Filter sections or articles"
+          onChange={event => setFilterText(_ => (event->ReactEvent.Form.target)["value"])}
+          className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none"
+        />
+      </div>
     </div>
     {switch (error, sections) {
     | (Some(message), _) =>
@@ -75,7 +142,10 @@ let make = () => {
       <div className="text-sm text-stone-500"> {React.string("Loading sections…")} </div>
     | (_, Some(sections)) =>
       <div className="rounded-2xl border border-stone-200 bg-white px-6 py-4 shadow-sm">
-        {sections->Belt.Array.map(renderSection)->React.array}
+        {sections
+        ->Belt.Array.keepMap(filterSection)
+        ->Belt.Array.map(section => renderSection(section, "root"))
+        ->React.array}
       </div>
     }}
   </div>

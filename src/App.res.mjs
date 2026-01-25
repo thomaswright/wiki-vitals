@@ -3,6 +3,7 @@
 import * as React from "react";
 import * as Belt_Array from "@rescript/runtime/lib/es6/Belt_Array.js";
 import * as HistoryLevel5 from "./wiki/HistoryLevel5.res.mjs";
+import * as Belt_SetString from "@rescript/runtime/lib/es6/Belt_SetString.js";
 import * as Stdlib_Promise from "@rescript/runtime/lib/es6/Stdlib_Promise.js";
 import * as JsxRuntime from "react/jsx-runtime";
 
@@ -13,9 +14,21 @@ function App(props) {
   let match$1 = React.useState(() => {});
   let setError = match$1[1];
   let error = match$1[0];
+  let match$2 = React.useState(() => "");
+  let setFilterText = match$2[1];
+  let filterText = match$2[0];
+  let match$3 = React.useState(() => {});
+  let setExpanded = match$3[1];
+  let expanded = match$3[0];
+  let collectKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
+    let key = prefix + "/" + section.title;
+    let nextAcc = Belt_SetString.add(acc, key);
+    return collectKeys(section.children, key, nextAcc);
+  });
   React.useEffect(() => {
     Stdlib_Promise.$$catch(HistoryLevel5.fetchSections().then(sections => {
       setSections(param => sections);
+      setExpanded(param => collectKeys(sections, "root", undefined));
       return Promise.resolve();
     }), param => {
       setError(param => "Failed to load the History page.");
@@ -35,23 +48,66 @@ function App(props) {
       className: "my-1"
     }, link.href);
   };
-  let renderSection = section => JsxRuntime.jsxs("div", {
-    children: [
-      JsxRuntime.jsx("div", {
-        children: section.title,
-        className: "text-lg font-semibold text-stone-800"
-      }),
-      section.items.length !== 0 ? JsxRuntime.jsx("ul", {
-          children: Belt_Array.map(section.items, renderLink),
-          className: "ml-4 mt-2 list-disc text-sm text-stone-700"
-        }) : null,
-      section.children.length !== 0 ? JsxRuntime.jsx("div", {
-          children: Belt_Array.map(section.children, renderSection),
-          className: "ml-4 mt-3 border-l border-stone-200 pl-4"
-        }) : null
-    ],
-    className: "my-4"
-  });
+  let query = filterText.toLowerCase();
+  let filterSection = section => {
+    if (query === "") {
+      return section;
+    }
+    let titleMatch = section.title.toLowerCase().includes(query);
+    if (titleMatch) {
+      return section;
+    }
+    let items = Belt_Array.keep(section.items, item => item.title.toLowerCase().includes(query));
+    let children = Belt_Array.keepMap(section.children, filterSection);
+    if (items.length !== 0 || children.length !== 0) {
+      return {
+        title: section.title,
+        level: section.level,
+        items: items,
+        children: children
+      };
+    }
+  };
+  let renderSection = (section, keyPrefix) => {
+    let key = keyPrefix + "/" + section.title;
+    let isOpen = Belt_SetString.has(expanded, key);
+    return JsxRuntime.jsxs("div", {
+      children: [
+        JsxRuntime.jsxs("div", {
+          children: [
+            JsxRuntime.jsx("button", {
+              children: isOpen ? "Hide" : "Show",
+              className: "rounded border border-stone-200 px-2 py-1 text-xs uppercase tracking-wider text-stone-600 hover:border-stone-300",
+              onClick: param => setExpanded(prev => {
+                if (Belt_SetString.has(prev, key)) {
+                  return Belt_SetString.remove(prev, key);
+                } else {
+                  return Belt_SetString.add(prev, key);
+                }
+              })
+            }),
+            JsxRuntime.jsx("span", {
+              children: section.title
+            })
+          ],
+          className: "flex items-center gap-2 text-lg font-semibold text-stone-800"
+        }),
+        isOpen ? JsxRuntime.jsxs("div", {
+            children: [
+              section.items.length !== 0 ? JsxRuntime.jsx("ul", {
+                  children: Belt_Array.map(section.items, renderLink),
+                  className: "ml-8 mt-2 list-disc text-sm text-stone-700"
+                }) : null,
+              section.children.length !== 0 ? JsxRuntime.jsx("div", {
+                  children: Belt_Array.map(section.children, child => renderSection(child, key)),
+                  className: "ml-6 mt-3 border-l border-stone-200 pl-4"
+                }) : null
+            ]
+          }) : null
+      ],
+      className: "my-4"
+    });
+  };
   return JsxRuntime.jsxs("div", {
     children: [
       JsxRuntime.jsxs("div", {
@@ -67,6 +123,15 @@ function App(props) {
           JsxRuntime.jsx("p", {
             children: "Browse and expand sections from the Vital Articles list.",
             className: "mt-2 text-stone-600"
+          }),
+          JsxRuntime.jsx("div", {
+            children: JsxRuntime.jsx("input", {
+              className: "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none",
+              placeholder: "Filter sections or articles",
+              value: filterText,
+              onChange: event => setFilterText(param => event.target.value)
+            }),
+            className: "mt-4"
           })
         ],
         className: "mb-8"
@@ -76,7 +141,7 @@ function App(props) {
           className: "rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         }) : (
           sections !== undefined ? JsxRuntime.jsx("div", {
-              children: Belt_Array.map(sections, renderSection),
+              children: Belt_Array.map(Belt_Array.keepMap(sections, filterSection), section => renderSection(section, "root")),
               className: "rounded-2xl border border-stone-200 bg-white px-6 py-4 shadow-sm"
             }) : JsxRuntime.jsx("div", {
               children: "Loading sections…",
