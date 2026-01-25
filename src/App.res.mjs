@@ -68,6 +68,11 @@ function App(props) {
       };
     }
   };
+  let expandAll = () => {
+    if (sections !== undefined) {
+      return setExpanded(param => collectKeys(sections, "root", undefined));
+    }
+  };
   let renderSection = (section, keyPrefix) => {
     let key = keyPrefix + "/" + section.title;
     let isOpen = Belt_SetString.has(expanded, key);
@@ -124,14 +129,31 @@ function App(props) {
             children: "Browse and expand sections from the Vital Articles list.",
             className: "mt-2 text-stone-600"
           }),
-          JsxRuntime.jsx("div", {
-            children: JsxRuntime.jsx("input", {
-              className: "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none",
-              placeholder: "Filter sections or articles",
-              value: filterText,
-              onChange: event => setFilterText(param => event.target.value)
-            }),
-            className: "mt-4"
+          JsxRuntime.jsxs("div", {
+            children: [
+              JsxRuntime.jsx("input", {
+                className: "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none",
+                placeholder: "Filter sections or articles",
+                value: filterText,
+                onChange: event => setFilterText(param => event.target.value)
+              }),
+              JsxRuntime.jsxs("div", {
+                children: [
+                  JsxRuntime.jsx("button", {
+                    children: "Expand all",
+                    className: "rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
+                    onClick: param => expandAll()
+                  }),
+                  JsxRuntime.jsx("button", {
+                    children: "Collapse all",
+                    className: "rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
+                    onClick: param => setExpanded(param => {})
+                  })
+                ],
+                className: "flex gap-2"
+              })
+            ],
+            className: "mt-4 flex flex-col gap-3 md:flex-row md:items-center"
           })
         ],
         className: "mb-8"

@@ -44,19 +44,19 @@ let make = () => {
     </li>
   }
 
-  let query = filterText->Js.String2.toLowerCase
+  let query = filterText->String.toLowerCase
 
   let rec filterSection = section => {
     if query == "" {
       Some(section)
     } else {
-      let titleMatch = section.title->Js.String2.toLowerCase->Js.String2.includes(query)
+      let titleMatch = section.title->String.toLowerCase->String.includes(query)
       if titleMatch {
         Some(section)
       } else {
         let items =
           section.items->Belt.Array.keep(item =>
-            item.title->Js.String2.toLowerCase->Js.String2.includes(query)
+            item.title->String.toLowerCase->String.includes(query)
           )
         let children = section.children->Belt.Array.keepMap(filterSection)
         if items->Belt.Array.length > 0 || children->Belt.Array.length > 0 {
@@ -75,6 +75,14 @@ let make = () => {
         : prev->Belt.Set.String.add(key)
     )
   }
+
+  let expandAll = () =>
+    switch sections {
+    | Some(sections) => setExpanded(_ => collectKeys(sections, "root", Belt.Set.String.empty))
+    | None => ()
+    }
+
+  let collapseAll = () => setExpanded(_ => Belt.Set.String.empty)
 
   let rec renderSection = (section, keyPrefix) => {
     let key = keyPrefix ++ "/" ++ section.title
@@ -124,13 +132,27 @@ let make = () => {
       <p className="mt-2 text-stone-600">
         {React.string("Browse and expand sections from the Vital Articles list.")}
       </p>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
         <input
           value={filterText}
           placeholder="Filter sections or articles"
           onChange={event => setFilterText(_ => (event->ReactEvent.Form.target)["value"])}
           className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none"
         />
+        <div className="flex gap-2">
+          <button
+            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+            onClick={_ => expandAll()}
+          >
+            {React.string("Expand all")}
+          </button>
+          <button
+            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+            onClick={_ => collapseAll()}
+          >
+            {React.string("Collapse all")}
+          </button>
+        </div>
       </div>
     </div>
     {switch (error, sections) {
