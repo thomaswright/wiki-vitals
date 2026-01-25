@@ -70,7 +70,7 @@ function App(props) {
               }),
             link.children.length !== 0 ? JsxRuntime.jsx("button", {
                 children: isOpen ? "−" : "+",
-                className: "rounded border border-stone-200 px-2 py-1 text-[10px] font-semibold text-stone-600 hover:border-stone-300",
+                className: "rounded border-stone-200 px-2 py-1 text-[10px] font-semibold text-stone-600 hover:border-stone-300",
                 onClick: param => setExpandedItems(prev => {
                   if (Belt_SetString.has(prev, key)) {
                     return Belt_SetString.remove(prev, key);
@@ -139,7 +139,7 @@ function App(props) {
             }),
             JsxRuntime.jsx("button", {
               children: isOpen ? "−" : "+",
-              className: "rounded border border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300",
+              className: "rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300",
               onClick: param => setExpanded(prev => {
                 if (Belt_SetString.has(prev, key)) {
                   return Belt_SetString.remove(prev, key);
@@ -149,22 +149,22 @@ function App(props) {
               })
             })
           ],
-          className: "flex items-center gap-2 text-lg font-semibold text-stone-800"
+          className: "flex items-center gap-2 font-semibold text-stone-800"
         }),
         isOpen ? JsxRuntime.jsxs("div", {
             children: [
               section.items.length !== 0 ? JsxRuntime.jsx("ul", {
                   children: Belt_Array.map(section.items, item => renderLink(item, key)),
-                  className: "ml-8 mt-2 list-disc text-sm text-stone-700"
+                  className: "ml-8 list-disc text-sm text-stone-700"
                 }) : null,
               section.children.length !== 0 ? JsxRuntime.jsx("div", {
                   children: Belt_Array.map(section.children, child => renderSection(child, key)),
-                  className: "ml-6 mt-3 border-l border-stone-200 pl-4"
+                  className: " border-stone-200"
                 }) : null
             ]
           }) : null
       ],
-      className: "my-4"
+      className: "ml-4"
     });
   };
   return JsxRuntime.jsxs("div", {
@@ -217,18 +217,18 @@ function App(props) {
       }),
       error !== undefined ? JsxRuntime.jsx("div", {
           children: error,
-          className: "rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className: "rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
         }) : (
           sections !== undefined ? JsxRuntime.jsx("div", {
               children: Belt_Array.map(Belt_Array.keepMap(sections, filterSection), section => renderSection(section, "root")),
-              className: "rounded-2xl border border-stone-200 bg-white px-6 py-4 shadow-sm"
+              className: "  bg-white"
             }) : JsxRuntime.jsx("div", {
               children: "Loading sections…",
               className: "text-sm text-stone-500"
             })
         )
     ],
-    className: "mx-auto max-w-5xl px-6 py-10"
+    className: "mx-auto max-w-5xl p-6"
   });
 }
 
