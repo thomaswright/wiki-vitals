@@ -50,20 +50,28 @@ let make = () => {
     let href = "https://en.wikipedia.org" ++ link.href
     let key = keyPrefix ++ "/item/" ++ link.title
     let isOpen = expandedItems->Belt.Set.String.has(key)
+
     <li key={link.title} className="my-1">
       <div className="flex items-center gap-2">
-        {switch hasHref {
-        | true =>
-          <a
-            href
-            target="_blank"
-            rel="noreferrer"
-            className="text-sky-700 hover:text-sky-900 underline decoration-sky-300"
-          >
-            {React.string(link.title)}
-          </a>
-        | false => <span className="text-stone-700"> {React.string(link.title)} </span>
-        }}
+        <span>
+          {switch hasHref {
+          | true =>
+            <a
+              href
+              target="_blank"
+              rel="noreferrer"
+              className="text-sky-700 hover:text-sky-900 underline decoration-sky-300"
+            >
+              {React.string(link.title)}
+            </a>
+          | false => <span className="text-stone-700"> {React.string(link.title)} </span>
+          }}
+          {switch link.level {
+          | None => React.null
+          | Some(level) => <span className="ml-1"> {React.string(Int.toString(level))} </span>
+          }}
+        </span>
+
         {switch link.children->Belt.Array.length > 0 {
         | true =>
           <button

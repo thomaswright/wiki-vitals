@@ -1,6 +1,7 @@
 type rec link = {
   title: string,
   href: string,
+  level: option<int>,
   children: array<link>,
 }
 

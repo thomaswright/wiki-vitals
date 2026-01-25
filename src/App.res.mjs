@@ -54,20 +54,29 @@ function App(props) {
     let href = "https://en.wikipedia.org" + link.href;
     let key = keyPrefix + "/item/" + link.title;
     let isOpen = Belt_SetString.has(expandedItems, key);
+    let level = link.level;
     return JsxRuntime.jsxs("li", {
       children: [
         JsxRuntime.jsxs("div", {
           children: [
-            hasHref ? JsxRuntime.jsx("a", {
-                children: link.title,
-                className: "text-sky-700 hover:text-sky-900 underline decoration-sky-300",
-                href: href,
-                rel: "noreferrer",
-                target: "_blank"
-              }) : JsxRuntime.jsx("span", {
-                children: link.title,
-                className: "text-stone-700"
-              }),
+            JsxRuntime.jsxs("span", {
+              children: [
+                hasHref ? JsxRuntime.jsx("a", {
+                    children: link.title,
+                    className: "text-sky-700 hover:text-sky-900 underline decoration-sky-300",
+                    href: href,
+                    rel: "noreferrer",
+                    target: "_blank"
+                  }) : JsxRuntime.jsx("span", {
+                    children: link.title,
+                    className: "text-stone-700"
+                  }),
+                level !== undefined ? JsxRuntime.jsx("span", {
+                    children: level.toString(),
+                    className: "ml-1"
+                  }) : null
+              ]
+            }),
             link.children.length !== 0 ? JsxRuntime.jsx("button", {
                 children: isOpen ? "−" : "+",
                 className: "rounded border-stone-200 px-2 py-1 text-[10px] font-semibold text-stone-600 hover:border-stone-300",
@@ -106,6 +115,7 @@ function App(props) {
         return {
           title: item.title,
           href: item.href,
+          level: item.level,
           children: children
         };
       }

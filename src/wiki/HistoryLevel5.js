@@ -91,13 +91,51 @@ export const fetchSections = async () => {
         }
       };
 
+      const levelFromText = (text) => {
+        const match = text.match(/\b(?:[Ll]evel|L)\s*(\d)\b/);
+        if (!match) return null;
+        return Number(match[1]);
+      };
+
+      const levelFromHref = (href) => {
+        const match = href.match(/\/Level\/(\d)\b/);
+        if (!match) return null;
+        return Number(match[1]);
+      };
+
+      const isLevelLink = (anchor) => {
+        const href = normalizeHref(anchor.getAttribute("href") || "");
+        const hrefLevel = levelFromHref(href);
+        if (hrefLevel) return true;
+        const textLevel = levelFromText((anchor.textContent || "").trim());
+        return Boolean(textLevel);
+      };
+
+      const levelFromNode = (node) => {
+        const anchors = Array.from(node.querySelectorAll("a[href]"));
+        for (const anchor of anchors) {
+          const href = normalizeHref(anchor.getAttribute("href") || "");
+          const hrefLevel = levelFromHref(href);
+          if (hrefLevel) return hrefLevel;
+          const textLevel = levelFromText((anchor.textContent || "").trim());
+          if (textLevel) return textLevel;
+        }
+        return levelFromText((node.textContent || "").trim());
+      };
+
+      const stripLevelSuffix = (title) =>
+        title
+          .replace(/\s*[–-]\s*\b[Ll]evel\s*\d\b\s*$/, "")
+          .replace(/\s*\(?\b[Ll]evel\s*\d\b\)?\s*$/, "")
+          .trim();
+
       if (tag === "P") {
         const links = el.querySelectorAll("a[href]");
         links.forEach((a) => {
           const title = (a.textContent || "").trim();
           const href = normalizeHref(a.getAttribute("href"));
           if (!title || !href) return;
-          current.items.push({ title, href, children: [] });
+          current.items.push({ title, href, level: undefined, children: [] });
         });
         return;
       }
@@ -110,7 +148,8 @@ export const fetchSections = async () => {
           return (
             href.startsWith("/wiki/") &&
             !a.classList.contains("mw-file-description") &&
-            !href.startsWith("/wiki/File:")
+            !href.startsWith("/wiki/File:") &&
+            !isLevelLink(a)
           );
         });
         return primary || null;
@@ -119,11 +158,15 @@ export const fetchSections = async () => {
       const itemFromLi = (li) => {
         const clone = li.cloneNode(true);
         clone.querySelectorAll("ul,ol").forEach((child) => child.remove());
+        const level = levelFromNode(clone);
         const primaryLink = pickPrimaryLink(li);
         const titleFromLink = primaryLink
           ? (primaryLink.textContent || "").trim()
           : "";
-        const title = titleFromLink || (clone.textContent || "").trim();
+        let title = titleFromLink || (clone.textContent || "").trim();
+        if (level) {
+          title = stripLevelSuffix(title);
+        }
         if (!title) return null;
         const href = primaryLink
           ? normalizeHref(primaryLink.getAttribute("href"))
@@ -136,7 +179,7 @@ export const fetchSections = async () => {
             if (childItem) children.push(childItem);
           });
         });
-        return { title, href: href || "", children };
+        return { title, href: href || "", level: level || undefined, children };
       };
 
       const listItems = el.querySelectorAll(":scope > li");
