@@ -22,7 +22,7 @@ const levelFromTag = (tag) => {
 export const fetchSections = async () => {
   const html = await fetch(pageHtmlUrl).then((r) => r.text());
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const nodes = doc.querySelectorAll("h2,h3,h4,h5,ul,ol");
+  const nodes = doc.querySelectorAll("h2,h3,h4,h5,ul,ol,p");
 
   const sections = [];
   const stack = [];
@@ -65,18 +65,45 @@ export const fetchSections = async () => {
       return;
     }
 
-    if (tag === "UL" || tag === "OL") {
+    if (tag === "UL" || tag === "OL" || tag === "P") {
       const current = currentSection();
       if (!current) {
         return;
       }
 
-      const links = el.querySelectorAll("a[href^='/wiki/']");
-      links.forEach((a) => {
-        const title = (a.textContent || "").trim();
-        const href = a.getAttribute("href");
-        if (!title || !href) return;
-        current.items.push({ title, href });
+      if (tag === "P") {
+        const links = el.querySelectorAll("a[href^='/wiki/']");
+        links.forEach((a) => {
+          const title = (a.textContent || "").trim();
+          const href = a.getAttribute("href");
+          if (!title || !href) return;
+          current.items.push({ title, href, children: [] });
+        });
+        return;
+      }
+
+      const itemFromLi = (li) => {
+        const clone = li.cloneNode(true);
+        clone.querySelectorAll("ul,ol").forEach((child) => child.remove());
+        const title = (clone.textContent || "").trim();
+        if (!title) return null;
+        const link = li.querySelector("a[href^='/wiki/']");
+        const href = link ? link.getAttribute("href") : "";
+        const childLists = li.querySelectorAll(":scope > ul, :scope > ol");
+        const children = [];
+        childLists.forEach((list) => {
+          list.querySelectorAll(":scope > li").forEach((childLi) => {
+            const childItem = itemFromLi(childLi);
+            if (childItem) children.push(childItem);
+          });
+        });
+        return { title, href: href || "", children };
+      };
+
+      const listItems = el.querySelectorAll(":scope > li");
+      listItems.forEach((li) => {
+        const item = itemFromLi(li);
+        if (item) current.items.push(item);
       });
     }
   });

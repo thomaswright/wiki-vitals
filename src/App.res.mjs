@@ -20,33 +20,74 @@ function App(props) {
   let match$3 = React.useState(() => {});
   let setExpanded = match$3[1];
   let expanded = match$3[0];
+  let match$4 = React.useState(() => {});
+  let setExpandedItems = match$4[1];
+  let expandedItems = match$4[0];
   let collectKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
     let key = prefix + "/" + section.title;
     let nextAcc = Belt_SetString.add(acc, key);
     return collectKeys(section.children, key, nextAcc);
   });
+  let collectItemKeys = (items, prefix, acc) => Belt_Array.reduce(items, acc, (acc, item) => {
+    let key = prefix + "/item/" + item.title;
+    let nextAcc = Belt_SetString.add(acc, key);
+    return collectItemKeys(item.children, key, nextAcc);
+  });
+  let collectAllItemKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
+    let nextAcc = collectItemKeys(section.items, prefix + "/" + section.title, acc);
+    return collectAllItemKeys(section.children, prefix + "/" + section.title, nextAcc);
+  });
   React.useEffect(() => {
     Stdlib_Promise.$$catch(HistoryLevel5.fetchSections().then(sections => {
       setSections(param => sections);
       setExpanded(param => collectKeys(sections, "root", undefined));
+      setExpandedItems(param => collectAllItemKeys(sections, "root", undefined));
       return Promise.resolve();
     }), param => {
       setError(param => "Failed to load the History page.");
       return Promise.resolve();
     });
   }, []);
-  let renderLink = link => {
+  let renderLink = (link, keyPrefix) => {
+    let hasHref = link.href !== "";
     let href = "https://en.wikipedia.org" + link.href;
-    return JsxRuntime.jsx("li", {
-      children: JsxRuntime.jsx("a", {
-        children: link.title,
-        className: "text-sky-700 hover:text-sky-900 underline decoration-sky-300",
-        href: href,
-        rel: "noreferrer",
-        target: "_blank"
-      }),
+    let key = keyPrefix + "/item/" + link.title;
+    let isOpen = Belt_SetString.has(expandedItems, key);
+    return JsxRuntime.jsxs("li", {
+      children: [
+        JsxRuntime.jsxs("div", {
+          children: [
+            hasHref ? JsxRuntime.jsx("a", {
+                children: link.title,
+                className: "text-sky-700 hover:text-sky-900 underline decoration-sky-300",
+                href: href,
+                rel: "noreferrer",
+                target: "_blank"
+              }) : JsxRuntime.jsx("span", {
+                children: link.title,
+                className: "text-stone-700"
+              }),
+            link.children.length !== 0 ? JsxRuntime.jsx("button", {
+                children: isOpen ? "−" : "+",
+                className: "rounded border border-stone-200 px-2 py-1 text-[10px] font-semibold text-stone-600 hover:border-stone-300",
+                onClick: param => setExpandedItems(prev => {
+                  if (Belt_SetString.has(prev, key)) {
+                    return Belt_SetString.remove(prev, key);
+                  } else {
+                    return Belt_SetString.add(prev, key);
+                  }
+                })
+              }) : null
+          ],
+          className: "flex items-center gap-2"
+        }),
+        link.children.length !== 0 && isOpen ? JsxRuntime.jsx("ul", {
+            children: Belt_Array.map(link.children, child => renderLink(child, key)),
+            className: "ml-5 mt-2 list-disc text-sm text-stone-600"
+          }) : null
+      ],
       className: "my-1"
-    }, link.href);
+    }, link.title);
   };
   let query = filterText.toLowerCase();
   let filterSection = section => {
@@ -57,7 +98,18 @@ function App(props) {
     if (titleMatch) {
       return section;
     }
-    let items = Belt_Array.keep(section.items, item => item.title.toLowerCase().includes(query));
+    let filterItem = item => {
+      let itemMatch = item.title.toLowerCase().includes(query);
+      let children = Belt_Array.keepMap(item.children, filterItem);
+      if (itemMatch || children.length !== 0) {
+        return {
+          title: item.title,
+          href: item.href,
+          children: children
+        };
+      }
+    };
+    let items = Belt_Array.keepMap(section.items, filterItem);
     let children = Belt_Array.keepMap(section.children, filterSection);
     if (items.length !== 0 || children.length !== 0) {
       return {
@@ -70,7 +122,8 @@ function App(props) {
   };
   let expandAll = () => {
     if (sections !== undefined) {
-      return setExpanded(param => collectKeys(sections, "root", undefined));
+      setExpanded(param => collectKeys(sections, "root", undefined));
+      return setExpandedItems(param => collectAllItemKeys(sections, "root", undefined));
     }
   };
   let renderSection = (section, keyPrefix) => {
@@ -80,9 +133,12 @@ function App(props) {
       children: [
         JsxRuntime.jsxs("div", {
           children: [
+            JsxRuntime.jsx("span", {
+              children: section.title
+            }),
             JsxRuntime.jsx("button", {
-              children: isOpen ? "Hide" : "Show",
-              className: "rounded border border-stone-200 px-2 py-1 text-xs uppercase tracking-wider text-stone-600 hover:border-stone-300",
+              children: isOpen ? "−" : "+",
+              className: "rounded border border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300",
               onClick: param => setExpanded(prev => {
                 if (Belt_SetString.has(prev, key)) {
                   return Belt_SetString.remove(prev, key);
@@ -90,9 +146,6 @@ function App(props) {
                   return Belt_SetString.add(prev, key);
                 }
               })
-            }),
-            JsxRuntime.jsx("span", {
-              children: section.title
             })
           ],
           className: "flex items-center gap-2 text-lg font-semibold text-stone-800"
@@ -100,7 +153,7 @@ function App(props) {
         isOpen ? JsxRuntime.jsxs("div", {
             children: [
               section.items.length !== 0 ? JsxRuntime.jsx("ul", {
-                  children: Belt_Array.map(section.items, renderLink),
+                  children: Belt_Array.map(section.items, item => renderLink(item, key)),
                   className: "ml-8 mt-2 list-disc text-sm text-stone-700"
                 }) : null,
               section.children.length !== 0 ? JsxRuntime.jsx("div", {
@@ -147,7 +200,10 @@ function App(props) {
                   JsxRuntime.jsx("button", {
                     children: "Collapse all",
                     className: "rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
-                    onClick: param => setExpanded(param => {})
+                    onClick: param => {
+                      setExpanded(param => {});
+                      setExpandedItems(param => {});
+                    }
                   })
                 ],
                 className: "flex gap-2"

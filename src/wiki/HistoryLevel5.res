@@ -1,6 +1,7 @@
-type link = {
+type rec link = {
   title: string,
   href: string,
+  children: array<link>,
 }
 
 type rec section = {

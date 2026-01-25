@@ -6,6 +6,7 @@ let make = () => {
   let (error, setError) = React.useState(() => None)
   let (filterText, setFilterText) = React.useState(() => "")
   let (expanded, setExpanded) = React.useState(() => Belt.Set.String.empty)
+  let (expandedItems, setExpandedItems) = React.useState(() => Belt.Set.String.empty)
 
   let rec collectKeys = (sections, prefix, acc) =>
     sections->Belt.Array.reduce(acc, (acc, section) => {
@@ -14,11 +15,25 @@ let make = () => {
       collectKeys(section.children, key, nextAcc)
     })
 
+  let rec collectItemKeys = (items: array<HistoryLevel5.link>, prefix, acc) =>
+    items->Belt.Array.reduce(acc, (acc, item) => {
+      let key = prefix ++ "/item/" ++ item.title
+      let nextAcc = acc->Belt.Set.String.add(key)
+      collectItemKeys(item.children, key, nextAcc)
+    })
+
+  let rec collectAllItemKeys = (sections, prefix, acc) =>
+    sections->Belt.Array.reduce(acc, (acc, section) => {
+      let nextAcc = collectItemKeys(section.items, prefix ++ "/" ++ section.title, acc)
+      collectAllItemKeys(section.children, prefix ++ "/" ++ section.title, nextAcc)
+    })
+
   React.useEffect0(() => {
     HistoryLevel5.fetchSections()
     ->Promise.then(sections => {
       setSections(_ => Some(sections))
       setExpanded(_ => collectKeys(sections, "root", Belt.Set.String.empty))
+      setExpandedItems(_ => collectAllItemKeys(sections, "root", Belt.Set.String.empty))
       Promise.resolve()
     })
     ->Promise.catch(_ => {
@@ -30,23 +45,60 @@ let make = () => {
     None
   })
 
-  let renderLink = link => {
+  let rec renderLink = (link: HistoryLevel5.link, keyPrefix) => {
+    let hasHref = link.href != ""
     let href = "https://en.wikipedia.org" ++ link.href
-    <li key={link.href} className="my-1">
-      <a
-        href
-        target="_blank"
-        rel="noreferrer"
-        className="text-sky-700 hover:text-sky-900 underline decoration-sky-300"
-      >
-        {React.string(link.title)}
-      </a>
+    let key = keyPrefix ++ "/item/" ++ link.title
+    let isOpen = expandedItems->Belt.Set.String.has(key)
+    <li key={link.title} className="my-1">
+      <div className="flex items-center gap-2">
+        {switch hasHref {
+        | true =>
+          <a
+            href
+            target="_blank"
+            rel="noreferrer"
+            className="text-sky-700 hover:text-sky-900 underline decoration-sky-300"
+          >
+            {React.string(link.title)}
+          </a>
+        | false =>
+          <span className="text-stone-700">{React.string(link.title)}</span>
+        }}
+        {switch link.children->Belt.Array.length > 0 {
+        | true =>
+          <button
+            className="rounded border border-stone-200 px-2 py-1 text-[10px] font-semibold text-stone-600 hover:border-stone-300"
+            onClick={_ => {
+              setExpandedItems(prev =>
+                prev->Belt.Set.String.has(key)
+                  ? prev->Belt.Set.String.remove(key)
+                  : prev->Belt.Set.String.add(key)
+              )
+            }}
+          >
+            {React.string(isOpen ? "−" : "+")}
+          </button>
+        | false => React.null
+        }}
+      </div>
+      {switch link.children->Belt.Array.length > 0 {
+      | true =>
+        {switch isOpen {
+        | true =>
+          <ul className="ml-5 mt-2 list-disc text-sm text-stone-600">
+            {link.children->Belt.Array.map(child => renderLink(child, key))->React.array}
+          </ul>
+        | false => React.null
+        }}
+      | false => React.null
+      }}
     </li>
   }
 
   let query = filterText->String.toLowerCase
 
-  let rec filterSection = section => {
+  let rec filterSection = (section: HistoryLevel5.section) => {
     if query == "" {
       Some(section)
     } else {
@@ -54,10 +106,20 @@ let make = () => {
       if titleMatch {
         Some(section)
       } else {
-        let items =
-          section.items->Belt.Array.keep(item =>
-            item.title->String.toLowerCase->String.includes(query)
-          )
+        let rec filterItem = (item: HistoryLevel5.link) => {
+          let itemMatch = item.title->String.toLowerCase->String.includes(query)
+          let children = item.children->Belt.Array.keepMap(filterItem)
+          if itemMatch {
+            Some({...item, children})
+          } else {
+            switch children->Belt.Array.length > 0 {
+            | true => Some({...item, children})
+            | false => None
+            }
+          }
+        }
+
+        let items = section.items->Belt.Array.keepMap(filterItem)
         let children = section.children->Belt.Array.keepMap(filterSection)
         if items->Belt.Array.length > 0 || children->Belt.Array.length > 0 {
           Some({...section, items, children})
@@ -78,11 +140,16 @@ let make = () => {
 
   let expandAll = () =>
     switch sections {
-    | Some(sections) => setExpanded(_ => collectKeys(sections, "root", Belt.Set.String.empty))
+    | Some(sections) =>
+      setExpanded(_ => collectKeys(sections, "root", Belt.Set.String.empty))
+      setExpandedItems(_ => collectAllItemKeys(sections, "root", Belt.Set.String.empty))
     | None => ()
     }
 
-  let collapseAll = () => setExpanded(_ => Belt.Set.String.empty)
+  let collapseAll = () => {
+    setExpanded(_ => Belt.Set.String.empty)
+    setExpandedItems(_ => Belt.Set.String.empty)
+  }
 
   let rec renderSection = (section, keyPrefix) => {
     let key = keyPrefix ++ "/" ++ section.title
@@ -90,13 +157,13 @@ let make = () => {
 
     <div className="my-4">
       <div className="flex items-center gap-2 text-lg font-semibold text-stone-800">
+        <span> {React.string(section.title)} </span>
         <button
-          className="rounded border border-stone-200 px-2 py-1 text-xs uppercase tracking-wider text-stone-600 hover:border-stone-300"
+          className="rounded border border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
           onClick={_ => toggleExpanded(key)}
         >
-          {React.string(isOpen ? "Hide" : "Show")}
+          {React.string(isOpen ? "−" : "+")}
         </button>
-        <span> {React.string(section.title)} </span>
       </div>
       {switch isOpen {
       | true =>
@@ -104,7 +171,7 @@ let make = () => {
           {switch section.items->Belt.Array.length > 0 {
           | true =>
             <ul className="ml-8 mt-2 list-disc text-sm text-stone-700">
-              {section.items->Belt.Array.map(renderLink)->React.array}
+              {section.items->Belt.Array.map(item => renderLink(item, key))->React.array}
             </ul>
           | false => React.null
           }}
