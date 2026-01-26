@@ -25,27 +25,29 @@ function App(props) {
   let match$2 = React.useState(() => "");
   let setFilterText = match$2[1];
   let filterText = match$2[0];
-  let match$3 = React.useState(() => {});
-  let setExpanded = match$3[1];
-  let expanded = match$3[0];
+  let match$3 = React.useState(() => "");
+  let setDebouncedFilterText = match$3[1];
   let match$4 = React.useState(() => {});
-  let setExpandedItems = match$4[1];
-  let expandedItems = match$4[0];
-  let match$5 = React.useState(() => Belt_SetInt.fromArray([
+  let setExpanded = match$4[1];
+  let expanded = match$4[0];
+  let match$5 = React.useState(() => {});
+  let setExpandedItems = match$5[1];
+  let expandedItems = match$5[0];
+  let match$6 = React.useState(() => Belt_SetInt.fromArray([
     1,
     2,
     3,
     4,
     5
   ]));
-  let setSelectedLevels = match$5[1];
-  let selectedLevels = match$5[0];
-  let match$6 = React.useState(() => true);
-  let setShowHeaders = match$6[1];
-  let showHeaders = match$6[0];
-  let match$7 = React.useState(() => {});
-  let setFocusedDivisionKey = match$7[1];
-  let focusedDivisionKey = match$7[0];
+  let setSelectedLevels = match$6[1];
+  let selectedLevels = match$6[0];
+  let match$7 = React.useState(() => true);
+  let setShowHeaders = match$7[1];
+  let showHeaders = match$7[0];
+  let match$8 = React.useState(() => {});
+  let setFocusedDivisionKey = match$8[1];
+  let focusedDivisionKey = match$8[0];
   let divisionKey = (prefix, division) => {
     let slug = division.href !== "" ? division.href : division.title;
     return prefix + "/division/" + slug;
@@ -100,6 +102,12 @@ function App(props) {
       return Promise.resolve();
     });
   }, []);
+  React.useEffect(() => {
+    let timeoutId = setTimeout(() => setDebouncedFilterText(param => filterText), 200);
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [filterText]);
   let renderLink = (link, keyPrefix) => {
     let hasHref = link.href !== "";
     let href = "https://en.wikipedia.org" + link.href;
@@ -150,7 +158,7 @@ function App(props) {
       className: "my-1"
     }, key);
   };
-  let query = filterText.toLowerCase();
+  let query = match$3[0].toLowerCase();
   let isAllLevelsSelected = Belt_SetInt.size(selectedLevels) === 5;
   let filterSection = section => {
     let titleMatch = section.title.toLowerCase().includes(query);
@@ -401,9 +409,9 @@ function App(props) {
   } else if (divisions !== undefined) {
     let visibleDivisions = query === "" && isAllLevelsSelected ? divisions : Belt_Array.keepMap(divisions, filterDivision);
     if (focusedDivisionKey !== undefined) {
-      let match$8 = findDivisionByKey(visibleDivisions, focusedDivisionKey, "root");
-      if (match$8 !== undefined) {
-        let division = match$8[0];
+      let match$9 = findDivisionByKey(visibleDivisions, focusedDivisionKey, "root");
+      if (match$9 !== undefined) {
+        let division = match$9[0];
         tmp = JsxRuntime.jsxs("div", {
           children: [
             JsxRuntime.jsxs("div", {
@@ -420,7 +428,7 @@ function App(props) {
               ],
               className: "mb-4 flex items-center gap-3"
             }),
-            renderFocusedDivision(division, match$8[1])
+            renderFocusedDivision(division, match$9[1])
           ],
           className: "rounded border-stone-100 bg-white"
         });

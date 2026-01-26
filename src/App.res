@@ -18,6 +18,7 @@ let make = () => {
   let (divisions, setDivisions) = React.useState(() => None)
   let (error, setError) = React.useState(() => None)
   let (filterText, setFilterText) = React.useState(() => "")
+  let (debouncedFilterText, setDebouncedFilterText) = React.useState(() => "")
   let (expanded, setExpanded) = React.useState(() => Belt.Set.String.empty)
   let (expandedItems, setExpandedItems) = React.useState(() => Belt.Set.String.empty)
   let (selectedLevels, setSelectedLevels) = React.useState(() =>
@@ -98,6 +99,11 @@ let make = () => {
     None
   })
 
+  React.useEffect1(() => {
+    let timeoutId = setTimeout(() => setDebouncedFilterText(_ => filterText), 200)
+    Some(() => clearTimeout(timeoutId))
+  }, [filterText])
+
   let rec renderLink = (link: VitalLevel5.link, keyPrefix) => {
     let hasHref = link.href != ""
     let href = "https://en.wikipedia.org" ++ link.href
@@ -159,7 +165,7 @@ let make = () => {
     </li>
   }
 
-  let query = filterText->String.toLowerCase
+  let query = debouncedFilterText->String.toLowerCase
   let isAllLevelsSelected = selectedLevels->Belt.Set.Int.size == 5
 
   let rec filterSection = (section: VitalLevel5.section) => {
