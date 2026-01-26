@@ -26,6 +26,7 @@ let make = () => {
   )
   let (showHeaders, setShowHeaders) = React.useState(() => true)
   let (focusedDivisionKey, setFocusedDivisionKey) = React.useState(() => None)
+  let (showAllDivisions, setShowAllDivisions) = React.useState(() => false)
   let divisionKey = (prefix, division: division) => {
     let slug = division.href != "" ? division.href : division.title
     prefix ++ "/division/" ++ slug
@@ -88,6 +89,7 @@ let make = () => {
       setExpanded(_ => Belt.Set.String.empty)
       setExpandedItems(_ => Belt.Set.String.empty)
       setFocusedDivisionKey(_ => None)
+      setShowAllDivisions(_ => false)
       Promise.resolve()
     })
     ->Promise.catch(_ => {
@@ -100,7 +102,7 @@ let make = () => {
   })
 
   React.useEffect1(() => {
-    let timeoutId = setTimeout(() => setDebouncedFilterText(_ => filterText), 200)
+    let timeoutId = setTimeout(() => setDebouncedFilterText(_ => filterText), 500)
     Some(() => clearTimeout(timeoutId))
   }, [filterText])
 
@@ -297,12 +299,12 @@ let make = () => {
         </div>
   }
 
-  let rec renderDivision = (division, keyPrefix) => {
+  let rec renderDivision = (division, keyPrefix, depth) => {
     let key = divisionKey(keyPrefix, division)
     let isOpen = expanded->Belt.Set.String.has(key)
 
     showHeaders
-      ? <div key className="">
+      ? <div key className={depth == 0 ? "" : "ml-4"}>
           <div className="flex items-center gap-2 font-semibold text-stone-900">
             <span> {React.string(division.title)} </span>
             <button
@@ -328,7 +330,7 @@ let make = () => {
               | true =>
                 <div className="border-stone-200">
                   {division.children
-                  ->Belt.Array.map(child => renderDivision(child, key))
+                  ->Belt.Array.map(child => renderDivision(child, key, depth + 1))
                   ->React.array}
                 </div>
               | false => React.null
@@ -351,7 +353,7 @@ let make = () => {
           | true =>
             <div className="border-stone-200">
               {division.children
-              ->Belt.Array.map(child => renderDivision(child, key))
+              ->Belt.Array.map(child => renderDivision(child, key, depth + 1))
               ->React.array}
             </div>
           | false => React.null
@@ -376,7 +378,7 @@ let make = () => {
       | true =>
         <div className="border-stone-200">
           {division.children
-          ->Belt.Array.map(child => renderDivision(child, key))
+          ->Belt.Array.map(child => renderDivision(child, key, 0))
           ->React.array}
         </div>
       | false => React.null
@@ -394,6 +396,7 @@ let make = () => {
           className="text-left text-sm font-semibold text-stone-800 hover:text-sky-700"
           onClick={_ => {
             setFocusedDivisionKey(_ => Some(key))
+            setShowAllDivisions(_ => false)
           }}
         >
           {React.string(division.title)}
@@ -425,20 +428,23 @@ let make = () => {
       }
     )
 
-  React.useEffect2(() => {
-    switch (focusedDivisionKey, divisions) {
-    | (Some(key), Some(divisions)) =>
+  React.useEffect3(() => {
+    switch (focusedDivisionKey, divisions, showAllDivisions) {
+    | (_, Some(divisions), true) =>
+      setExpanded(_ => collectDivisionKeys(divisions, "root", Belt.Set.String.empty))
+      setExpandedItems(_ => collectDivisionItemKeys(divisions, "root", Belt.Set.String.empty))
+    | (Some(key), Some(divisions), false) =>
       switch findDivisionByKey(divisions, key, "root") {
       | None => ()
       | Some((division, prefix)) =>
         setExpanded(_ => collectDivisionKeys([division], prefix, Belt.Set.String.empty))
         setExpandedItems(_ => collectDivisionItemKeys([division], prefix, Belt.Set.String.empty))
       }
-    | (None, _) => ()
-    | (_, None) => ()
+    | (None, _, _) => ()
+    | (_, None, _) => ()
     }
     None
-  }, (focusedDivisionKey, divisions))
+  }, (focusedDivisionKey, divisions, showAllDivisions))
 
   <div className="mx-auto max-w-5xl p-6">
     <div className="mb-8">
@@ -515,16 +521,44 @@ let make = () => {
       }
       switch focusedDivisionKey {
       | None =>
-        <div className="rounded border-stone-100 bg-white p-4">
-          <p className="mb-3 text-xs uppercase tracking-widest text-stone-500">
-            {React.string("Divisions")}
-          </p>
-          <ul className="list-disc">
-            {visibleDivisions
-            ->Belt.Array.map(division => renderDivisionNav(division, "root"))
-            ->React.array}
-          </ul>
-        </div>
+        showAllDivisions
+          ? <div className="rounded border-stone-100 bg-white p-4">
+              <div className="mb-4 flex items-center gap-3">
+                <button
+                  className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+                  onClick={_ => setShowAllDivisions(_ => false)}
+                >
+                  {React.string("Divisions")}
+                </button>
+                <span className="text-sm font-semibold text-stone-800">
+                  {React.string("All divisions")}
+                </span>
+              </div>
+              {visibleDivisions
+              ->Belt.Array.map(division => renderDivision(division, "root", 0))
+              ->React.array}
+            </div>
+          : <div className="rounded border-stone-100 bg-white p-4">
+              <p className="mb-3 text-xs uppercase tracking-widest text-stone-500">
+                {React.string("Divisions")}
+              </p>
+              <ul className="list-disc">
+                {visibleDivisions
+                ->Belt.Array.map(division => renderDivisionNav(division, "root"))
+                ->React.array}
+              </ul>
+              <div className="mt-4">
+                <button
+                  className="rounded border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+                  onClick={_ => {
+                    setShowAllDivisions(_ => true)
+                    setFocusedDivisionKey(_ => None)
+                  }}
+                >
+                  {React.string("All (slow)")}
+                </button>
+              </div>
+            </div>
       | Some(focusedKey) =>
         switch findDivisionByKey(visibleDivisions, focusedKey, "root") {
         | None =>
@@ -536,7 +570,10 @@ let make = () => {
             <div className="mb-4 flex items-center gap-3">
               <button
                 className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
-                onClick={_ => setFocusedDivisionKey(_ => None)}
+                onClick={_ => {
+                  setFocusedDivisionKey(_ => None)
+                  setShowAllDivisions(_ => false)
+                }}
               >
                 {React.string("All divisions")}
               </button>
