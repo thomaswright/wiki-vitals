@@ -25,24 +25,33 @@ let make = () => {
   )
   let (showHeaders, setShowHeaders) = React.useState(() => true)
   let (focusedDivisionKey, setFocusedDivisionKey) = React.useState(() => None)
-  let divisionKey = (prefix, title) => prefix ++ "/division/" ++ title
+  let divisionKey = (prefix, division: division) => {
+    let slug = division.href != "" ? division.href : division.title
+    prefix ++ "/division/" ++ slug
+  }
+  let sectionKey = (prefix, section: section) =>
+    prefix ++ "/section/" ++ section.title ++ "#" ++ Int.toString(section.level)
+  let itemKey = (prefix, link: VitalLevel5.link) => {
+    let slug = link.href != "" ? link.href : link.title
+    prefix ++ "/item/" ++ slug
+  }
   let rec collectSectionKeys = (sections: array<section>, prefix, acc) =>
     sections->Belt.Array.reduce(acc, (acc, section) => {
-      let key = prefix ++ "/section/" ++ section.title
+      let key = sectionKey(prefix, section)
       let nextAcc = acc->Belt.Set.String.add(key)
       collectSectionKeys(section.children, key, nextAcc)
     })
 
   let rec collectItemKeys = (items: array<VitalLevel5.link>, prefix, acc) =>
     items->Belt.Array.reduce(acc, (acc, item) => {
-      let key = prefix ++ "/item/" ++ item.title
+      let key = itemKey(prefix, item)
       let nextAcc = acc->Belt.Set.String.add(key)
       collectItemKeys(item.children, key, nextAcc)
     })
 
   let rec collectAllItemKeys = (sections: array<section>, prefix, acc) =>
     sections->Belt.Array.reduce(acc, (acc, section) => {
-      let key = prefix ++ "/section/" ++ section.title
+      let key = sectionKey(prefix, section)
 
       let nextAcc = collectItemKeys(section.items, key, acc)
       collectAllItemKeys(section.children, key, nextAcc)
@@ -50,7 +59,7 @@ let make = () => {
 
   let rec collectDivisionKeys = (divisions: array<division>, prefix, acc) =>
     divisions->Belt.Array.reduce(acc, (acc, division: division) => {
-      let key = prefix ++ "/division/" ++ division.title
+      let key = divisionKey(prefix, division)
       let nextAcc = acc->Belt.Set.String.add(key)
       let nextSections = collectSectionKeys(division.sections, key, nextAcc)
       collectDivisionKeys(division.children, key, nextSections)
@@ -58,7 +67,7 @@ let make = () => {
 
   let rec collectDivisionItemKeys = (divisions, prefix, acc) =>
     divisions->Belt.Array.reduce(acc, (acc, division) => {
-      let key = prefix ++ "/division/" ++ division.title
+      let key = divisionKey(prefix, division)
       let nextAcc = collectAllItemKeys(division.sections, key, acc)
       collectDivisionItemKeys(division.children, key, nextAcc)
     })
@@ -92,7 +101,7 @@ let make = () => {
   let rec renderLink = (link: VitalLevel5.link, keyPrefix) => {
     let hasHref = link.href != ""
     let href = "https://en.wikipedia.org" ++ link.href
-    let key = keyPrefix ++ "/item/" ++ link.title
+    let key = itemKey(keyPrefix, link)
     let isOpen = expandedItems->Belt.Set.String.has(key)
 
     <li key={key} className="my-1">
@@ -225,11 +234,11 @@ let make = () => {
   }
 
   let rec renderSection = (section: section, keyPrefix) => {
-    let key = keyPrefix ++ "/section/" ++ section.title
+    let key = sectionKey(keyPrefix, section)
     let isOpen = expanded->Belt.Set.String.has(key)
 
     showHeaders
-      ? <div className="ml-4">
+      ? <div key className="ml-4">
           <div className="flex items-center gap-2 font-semibold text-stone-800">
             <span> {React.string(section.title)} </span>
             <button
@@ -262,7 +271,7 @@ let make = () => {
           | false => React.null
           }}
         </div>
-      : <div>
+      : <div key>
           {switch section.items->Belt.Array.length > 0 {
           | true =>
             <ul className="ml-4 list-disc text-sm text-stone-700">
@@ -281,11 +290,11 @@ let make = () => {
   }
 
   let rec renderDivision = (division, keyPrefix) => {
-    let key = divisionKey(keyPrefix, division.title)
+    let key = divisionKey(keyPrefix, division)
     let isOpen = expanded->Belt.Set.String.has(key)
 
     showHeaders
-      ? <div className="ml-2">
+      ? <div key className="ml-2">
           <div className="flex items-center gap-2 font-semibold text-stone-900">
             <span> {React.string(division.title)} </span>
             <button
@@ -320,7 +329,7 @@ let make = () => {
           | false => React.null
           }}
         </div>
-      : <div>
+      : <div key>
           {switch division.sections->Belt.Array.length > 0 {
           | true =>
             <ul className="ml-4 list-disc text-sm text-stone-700">
@@ -343,7 +352,7 @@ let make = () => {
   }
 
   let rec renderDivisionNav = (division, keyPrefix) => {
-    let key = divisionKey(keyPrefix, division.title)
+    let key = divisionKey(keyPrefix, division)
     let hasChildren = division.children->Belt.Array.length > 0
 
     <li key={key} className="my-1">
@@ -378,7 +387,7 @@ let make = () => {
       switch acc {
       | Some(_) => acc
       | None =>
-        let key = divisionKey(prefix, division.title)
+        let key = divisionKey(prefix, division)
         if key == targetKey {
           Some((division, prefix))
         } else {

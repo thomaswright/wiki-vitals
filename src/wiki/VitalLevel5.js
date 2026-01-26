@@ -164,6 +164,10 @@ const parseSections = (doc) => {
         return;
       }
 
+      if (el.closest("li")) {
+        return;
+      }
+
       const pickPrimaryLink = (li) => {
         const anchors = Array.from(li.querySelectorAll("a[href]"));
         const primary = anchors.find((a) => {
@@ -195,10 +199,14 @@ const parseSections = (doc) => {
         const href = primaryLink
           ? normalizeHref(primaryLink.getAttribute("href"))
           : "";
-        const childLists = li.querySelectorAll(":scope > ul, :scope > ol");
+        const childLists = Array.from(li.children).filter(
+          (child) => child.tagName === "UL" || child.tagName === "OL",
+        );
         const children = [];
         childLists.forEach((list) => {
-          list.querySelectorAll(":scope > li").forEach((childLi) => {
+          Array.from(list.children)
+            .filter((child) => child.tagName === "LI")
+            .forEach((childLi) => {
             const childItem = itemFromLi(childLi);
             if (childItem) children.push(childItem);
           });
@@ -207,7 +215,9 @@ const parseSections = (doc) => {
         return { title, href: href || "", level, children };
       };
 
-      const listItems = el.querySelectorAll(":scope > li");
+      const listItems = Array.from(el.children).filter(
+        (child) => child.tagName === "LI",
+      );
       listItems.forEach((li) => {
         const item = itemFromLi(li);
         if (item) current.items.push(item);

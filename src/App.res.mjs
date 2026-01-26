@@ -46,30 +46,38 @@ function App(props) {
   let match$7 = React.useState(() => {});
   let setFocusedDivisionKey = match$7[1];
   let focusedDivisionKey = match$7[0];
-  let divisionKey = (prefix, title) => prefix + "/division/" + title;
+  let divisionKey = (prefix, division) => {
+    let slug = division.href !== "" ? division.href : division.title;
+    return prefix + "/division/" + slug;
+  };
+  let sectionKey = (prefix, section) => prefix + "/section/" + section.title + "#" + section.level.toString();
+  let itemKey = (prefix, link) => {
+    let slug = link.href !== "" ? link.href : link.title;
+    return prefix + "/item/" + slug;
+  };
   let collectSectionKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
-    let key = prefix + "/section/" + section.title;
+    let key = sectionKey(prefix, section);
     let nextAcc = Belt_SetString.add(acc, key);
     return collectSectionKeys(section.children, key, nextAcc);
   });
   let collectItemKeys = (items, prefix, acc) => Belt_Array.reduce(items, acc, (acc, item) => {
-    let key = prefix + "/item/" + item.title;
+    let key = itemKey(prefix, item);
     let nextAcc = Belt_SetString.add(acc, key);
     return collectItemKeys(item.children, key, nextAcc);
   });
   let collectAllItemKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
-    let key = prefix + "/section/" + section.title;
+    let key = sectionKey(prefix, section);
     let nextAcc = collectItemKeys(section.items, key, acc);
     return collectAllItemKeys(section.children, key, nextAcc);
   });
   let collectDivisionKeys = (divisions, prefix, acc) => Belt_Array.reduce(divisions, acc, (acc, division) => {
-    let key = prefix + "/division/" + division.title;
+    let key = divisionKey(prefix, division);
     let nextAcc = Belt_SetString.add(acc, key);
     let nextSections = collectSectionKeys(division.sections, key, nextAcc);
     return collectDivisionKeys(division.children, key, nextSections);
   });
   let collectDivisionItemKeys = (divisions, prefix, acc) => Belt_Array.reduce(divisions, acc, (acc, division) => {
-    let key = prefix + "/division/" + division.title;
+    let key = divisionKey(prefix, division);
     let nextAcc = collectAllItemKeys(division.sections, key, acc);
     return collectDivisionItemKeys(division.children, key, nextAcc);
   });
@@ -95,7 +103,7 @@ function App(props) {
   let renderLink = (link, keyPrefix) => {
     let hasHref = link.href !== "";
     let href = "https://en.wikipedia.org" + link.href;
-    let key = keyPrefix + "/item/" + link.title;
+    let key = itemKey(keyPrefix, link);
     let isOpen = Belt_SetString.has(expandedItems, key);
     let level = link.level;
     return JsxRuntime.jsxs("li", {
@@ -223,7 +231,7 @@ function App(props) {
     }
   };
   let renderSection = (section, keyPrefix) => {
-    let key = keyPrefix + "/section/" + section.title;
+    let key = sectionKey(keyPrefix, section);
     let isOpen = Belt_SetString.has(expanded, key);
     if (showHeaders) {
       return JsxRuntime.jsxs("div", {
@@ -255,7 +263,7 @@ function App(props) {
             }) : null
         ],
         className: "ml-4"
-      });
+      }, key);
     } else {
       return JsxRuntime.jsxs("div", {
         children: [
@@ -268,11 +276,11 @@ function App(props) {
               className: " border-stone-200"
             }) : null
         ]
-      });
+      }, key);
     }
   };
   let renderDivision = (division, keyPrefix) => {
-    let key = divisionKey(keyPrefix, division.title);
+    let key = divisionKey(keyPrefix, division);
     let isOpen = Belt_SetString.has(expanded, key);
     if (showHeaders) {
       return JsxRuntime.jsxs("div", {
@@ -304,7 +312,7 @@ function App(props) {
             }) : null
         ],
         className: "ml-2"
-      });
+      }, key);
     } else {
       return JsxRuntime.jsxs("div", {
         children: [
@@ -317,11 +325,11 @@ function App(props) {
               className: "border-stone-200"
             }) : null
         ]
-      });
+      }, key);
     }
   };
   let renderDivisionNav = (division, keyPrefix) => {
-    let key = divisionKey(keyPrefix, division.title);
+    let key = divisionKey(keyPrefix, division);
     let hasChildren = division.children.length !== 0;
     return JsxRuntime.jsxs("li", {
       children: [
@@ -351,7 +359,7 @@ function App(props) {
     if (acc !== undefined) {
       return acc;
     }
-    let key = divisionKey(prefix, division.title);
+    let key = divisionKey(prefix, division);
     if (key === targetKey) {
       return [
         division,
