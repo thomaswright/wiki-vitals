@@ -120,12 +120,20 @@ function findDivisionPathByKey(divisions, targetKey, prefix) {
     }
     let key = divisionKey(prefix, division);
     if (key === targetKey) {
-      return [division.title];
+      return [{
+          title: division.title,
+          key: key,
+          kind: "division"
+        }];
     }
     let path = findDivisionPathByKey(division.children, targetKey, key);
     if (path !== undefined) {
       return Belt_Array.concatMany([
-        [division.title],
+        [{
+            title: division.title,
+            key: key,
+            kind: "division"
+          }],
         path
       ]);
     }
@@ -139,12 +147,20 @@ function findSectionPathInSections(sections, targetKey, prefix) {
     }
     let key = sectionKey(prefix, section);
     if (key === targetKey) {
-      return [section.title];
+      return [{
+          title: section.title,
+          key: key,
+          kind: "section"
+        }];
     }
     let path = findSectionPathInSections(section.children, targetKey, key);
     if (path !== undefined) {
       return Belt_Array.concatMany([
-        [section.title],
+        [{
+            title: section.title,
+            key: key,
+            kind: "section"
+          }],
         path
       ]);
     }
@@ -160,14 +176,22 @@ function findSectionPathByKey(divisions, targetKey, prefix) {
     let path = findSectionPathInSections(division.sections, targetKey, key);
     if (path !== undefined) {
       return Belt_Array.concatMany([
-        [division.title],
+        [{
+            title: division.title,
+            key: key,
+            kind: "division"
+          }],
         path
       ]);
     }
     let path$1 = findSectionPathByKey(division.children, targetKey, key);
     if (path$1 !== undefined) {
       return Belt_Array.concatMany([
-        [division.title],
+        [{
+            title: division.title,
+            key: key,
+            kind: "division"
+          }],
         path$1
       ]);
     }
@@ -472,6 +496,48 @@ function App$ListView(props) {
       ]
     });
   };
+  let renderBreadcrumb = crumbs => {
+    let crumbCount = crumbs.length;
+    return JsxRuntime.jsxs("div", {
+      children: [
+        JsxRuntime.jsx("button", {
+          children: "All divisions",
+          className: "text-left text-sm font-semibold text-stone-700 hover:text-sky-700",
+          onClick: param => {
+            setFocusedDivisionKey(param => {});
+            setFocusedSectionKey(param => {});
+          }
+        }),
+        Belt_Array.mapWithIndex(crumbs, (index, crumb) => {
+          let isLast = index === (crumbCount - 1 | 0);
+          return JsxRuntime.jsxs(JsxRuntime.Fragment, {
+            children: [
+              JsxRuntime.jsx("span", {
+                children: "›",
+                className: "text-stone-400"
+              }),
+              JsxRuntime.jsx("button", {
+                children: crumb.title,
+                className: "text-left text-sm font-semibold " + (
+                  isLast ? "text-stone-900" : "text-stone-700 hover:text-sky-700"
+                ),
+                onClick: param => {
+                  let match = crumb.kind;
+                  if (match === "section") {
+                    setFocusedSectionKey(param => crumb.key);
+                    return setFocusedDivisionKey(param => {});
+                  }
+                  setFocusedDivisionKey(param => crumb.key);
+                  setFocusedSectionKey(param => {});
+                }
+              })
+            ]
+          });
+        })
+      ],
+      className: "flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800"
+    });
+  };
   if (error !== undefined) {
     return JsxRuntime.jsx("div", {
       children: error,
@@ -494,34 +560,15 @@ function App$ListView(props) {
       });
     }
     let division = match[0];
-    let breadcrumb = Belt_Option.getWithDefault(findDivisionPathByKey(visibleDivisions, focusedDivisionKey, "root"), [division.title]);
+    let breadcrumb = Belt_Option.getWithDefault(findDivisionPathByKey(visibleDivisions, focusedDivisionKey, "root"), [{
+        title: division.title,
+        key: focusedDivisionKey,
+        kind: "division"
+      }]);
     return JsxRuntime.jsxs("div", {
       children: [
-        JsxRuntime.jsxs("div", {
-          children: [
-            JsxRuntime.jsx("button", {
-              children: "All divisions",
-              className: "rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
-              onClick: param => {
-                setFocusedDivisionKey(param => {});
-                setFocusedSectionKey(param => {});
-              }
-            }),
-            JsxRuntime.jsx("div", {
-              children: Belt_Array.mapWithIndex(breadcrumb, (index, title) => JsxRuntime.jsxs(React.Fragment, {
-                children: [
-                  JsxRuntime.jsx("span", {
-                    children: title
-                  }),
-                  index < (breadcrumb.length - 1 | 0) ? JsxRuntime.jsx("span", {
-                      children: "›",
-                      className: "text-stone-400"
-                    }) : null
-                ]
-              }, title)),
-              className: "flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800"
-            })
-          ],
+        JsxRuntime.jsx("div", {
+          children: renderBreadcrumb(breadcrumb),
           className: "mb-4 flex items-center gap-3"
         }),
         renderFocusedDivision(division, match[1])
@@ -552,34 +599,15 @@ function App$ListView(props) {
     });
   }
   let section = match$1[0];
-  let breadcrumb$1 = Belt_Option.getWithDefault(findSectionPathByKey(visibleDivisions, focusedSectionKey, "root"), [section.title]);
+  let breadcrumb$1 = Belt_Option.getWithDefault(findSectionPathByKey(visibleDivisions, focusedSectionKey, "root"), [{
+      title: section.title,
+      key: focusedSectionKey,
+      kind: "section"
+    }]);
   return JsxRuntime.jsxs("div", {
     children: [
-      JsxRuntime.jsxs("div", {
-        children: [
-          JsxRuntime.jsx("button", {
-            children: "All divisions",
-            className: "rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
-            onClick: param => {
-              setFocusedSectionKey(param => {});
-              setFocusedDivisionKey(param => {});
-            }
-          }),
-          JsxRuntime.jsx("div", {
-            children: Belt_Array.mapWithIndex(breadcrumb$1, (index, title) => JsxRuntime.jsxs(React.Fragment, {
-              children: [
-                JsxRuntime.jsx("span", {
-                  children: title
-                }),
-                index < (breadcrumb$1.length - 1 | 0) ? JsxRuntime.jsx("span", {
-                    children: "›",
-                    className: "text-stone-400"
-                  }) : null
-              ]
-            }, title)),
-            className: "flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800"
-          })
-        ],
+      JsxRuntime.jsx("div", {
+        children: renderBreadcrumb(breadcrumb$1),
         className: "mb-4 flex items-center gap-3"
       }),
       renderSection(section, match$1[1], 0)

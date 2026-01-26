@@ -97,6 +97,8 @@ let rec findDivisionByKey = (divisions, targetKey, prefix) =>
     }
   )
 
+type crumb = {title: string, key: string, kind: string}
+
 let rec findDivisionPathByKey = (divisions, targetKey, prefix) =>
   divisions->Belt.Array.reduce(None, (acc, division) =>
     switch acc {
@@ -104,11 +106,11 @@ let rec findDivisionPathByKey = (divisions, targetKey, prefix) =>
     | None =>
       let key = divisionKey(prefix, division)
       if key == targetKey {
-        Some([division.title])
+        Some([{title: division.title, key, kind: "division"}])
       } else {
         switch findDivisionPathByKey(division.children, targetKey, key) {
         | None => None
-        | Some(path) => Some([division.title, ...path])
+        | Some(path) => Some([{title: division.title, key, kind: "division"}, ...path])
         }
       }
     }
@@ -121,11 +123,11 @@ let rec findSectionPathInSections = (sections, targetKey, prefix) =>
     | None =>
       let key = sectionKey(prefix, section)
       if key == targetKey {
-        Some([section.title])
+        Some([{title: section.title, key, kind: "section"}])
       } else {
         switch findSectionPathInSections(section.children, targetKey, key) {
         | None => None
-        | Some(path) => Some([section.title, ...path])
+        | Some(path) => Some([{title: section.title, key, kind: "section"}, ...path])
         }
       }
     }
@@ -138,11 +140,11 @@ let rec findSectionPathByKey = (divisions, targetKey, prefix) =>
     | None =>
       let key = divisionKey(prefix, division)
       switch findSectionPathInSections(division.sections, targetKey, key) {
-      | Some(path) => Some([division.title, ...path])
+      | Some(path) => Some([{title: division.title, key, kind: "division"}, ...path])
       | None =>
         switch findSectionPathByKey(division.children, targetKey, key) {
         | None => None
-        | Some(path) => Some([division.title, ...path])
+        | Some(path) => Some([{title: division.title, key, kind: "division"}, ...path])
         }
       }
     }
@@ -504,6 +506,49 @@ module ListView = {
       </div>
     }
 
+    let renderBreadcrumb = crumbs => {
+      let crumbCount = crumbs->Belt.Array.length
+
+      <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800">
+        <button
+          className="text-left text-sm font-semibold text-stone-700 hover:text-sky-700"
+          onClick={_ => {
+            setFocusedDivisionKey(_ => None)
+            setFocusedSectionKey(_ => None)
+          }}
+        >
+          {React.string("All divisions")}
+        </button>
+        {crumbs
+        ->Belt.Array.mapWithIndex((index, crumb) => {
+            let isLast = index == crumbCount - 1
+            <>
+              <span className="text-stone-400"> {React.string("›")} </span>
+              <button
+                className={
+                  "text-left text-sm font-semibold " ++ (
+                    isLast ? "text-stone-900" : "text-stone-700 hover:text-sky-700"
+                  )
+                }
+                onClick={_ =>
+                  switch crumb.kind {
+                  | "section" =>
+                    setFocusedSectionKey(_ => Some(crumb.key))
+                    setFocusedDivisionKey(_ => None)
+                  | _ =>
+                    setFocusedDivisionKey(_ => Some(crumb.key))
+                    setFocusedSectionKey(_ => None)
+                  }
+                }
+              >
+                {React.string(crumb.title)}
+              </button>
+            </>
+          })
+        ->React.array}
+      </div>
+    }
+
     switch (error, divisions) {
     | (Some(message), _) =>
       <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -538,32 +583,11 @@ module ListView = {
         | Some((division, prefix)) =>
           let breadcrumb =
             findDivisionPathByKey(visibleDivisions, focusedKey, "root")->Belt.Option.getWithDefault([
-              division.title,
+              {title: division.title, key: focusedKey, kind: "division"},
             ])
           <div className="rounded border-stone-100 bg-white">
             <div className="mb-4 flex items-center gap-3">
-              <button
-                className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
-                onClick={_ => {
-                  setFocusedDivisionKey(_ => None)
-                  setFocusedSectionKey(_ => None)
-                }}
-              >
-                {React.string("All divisions")}
-              </button>
-              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800">
-                {breadcrumb
-                ->Belt.Array.mapWithIndex((index, title) =>
-                    <React.fragment key={title}>
-                      <span> {React.string(title)} </span>
-                      {switch index < breadcrumb->Belt.Array.length - 1 {
-                      | true => <span className="text-stone-400"> {React.string("›")} </span>
-                      | false => React.null
-                      }}
-                    </React.fragment>
-                  )
-                ->React.array}
-              </div>
+              {renderBreadcrumb(breadcrumb)}
             </div>
             {renderFocusedDivision(division, prefix)}
           </div>
@@ -577,32 +601,11 @@ module ListView = {
         | Some((section, prefix)) =>
           let breadcrumb =
             findSectionPathByKey(visibleDivisions, focusedKey, "root")->Belt.Option.getWithDefault([
-              section.title,
+              {title: section.title, key: focusedKey, kind: "section"},
             ])
           <div className="rounded border-stone-100 bg-white">
             <div className="mb-4 flex items-center gap-3">
-              <button
-                className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
-                onClick={_ => {
-                  setFocusedSectionKey(_ => None)
-                  setFocusedDivisionKey(_ => None)
-                }}
-              >
-                {React.string("All divisions")}
-              </button>
-              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800">
-                {breadcrumb
-                ->Belt.Array.mapWithIndex((index, title) =>
-                    <React.fragment key={title}>
-                      <span> {React.string(title)} </span>
-                      {switch index < breadcrumb->Belt.Array.length - 1 {
-                      | true => <span className="text-stone-400"> {React.string("›")} </span>
-                      | false => React.null
-                      }}
-                    </React.fragment>
-                  )
-                ->React.array}
-              </div>
+              {renderBreadcrumb(breadcrumb)}
             </div>
             {renderSection(section, prefix, 0)}
           </div>
