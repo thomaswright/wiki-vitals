@@ -302,7 +302,7 @@ function App(props) {
               children: [
                 division.sections.length !== 0 ? JsxRuntime.jsx("ul", {
                     children: Belt_Array.map(division.sections, section => renderSection(section, key)),
-                    className: "ml-6 list-disc text-sm text-stone-700"
+                    className: "ml-2 list-disc text-sm text-stone-700"
                   }) : null,
                 division.children.length !== 0 ? JsxRuntime.jsx("div", {
                     children: Belt_Array.map(division.children, child => renderDivision(child, key)),
@@ -328,31 +328,40 @@ function App(props) {
       }, key);
     }
   };
+  let renderFocusedDivision = (division, keyPrefix) => {
+    let key = divisionKey(keyPrefix, division);
+    return JsxRuntime.jsxs("div", {
+      children: [
+        division.sections.length !== 0 ? JsxRuntime.jsx("ul", {
+            children: Belt_Array.map(division.sections, section => renderSection(section, key)),
+            className: "list-disc text-sm text-stone-700"
+          }) : null,
+        division.children.length !== 0 ? JsxRuntime.jsx("div", {
+            children: Belt_Array.map(division.children, child => renderDivision(child, key)),
+            className: "border-stone-200"
+          }) : null
+      ]
+    });
+  };
   let renderDivisionNav = (division, keyPrefix) => {
     let key = divisionKey(keyPrefix, division);
     let hasChildren = division.children.length !== 0;
     return JsxRuntime.jsxs("li", {
       children: [
-        JsxRuntime.jsxs("div", {
-          children: [
-            JsxRuntime.jsx("button", {
-              children: division.title,
-              className: "text-left text-sm font-semibold text-stone-800 hover:text-sky-700",
-              onClick: param => setFocusedDivisionKey(param => key)
-            }),
-            hasChildren ? JsxRuntime.jsx("span", {
-                children: "•",
-                className: "text-xs text-stone-400"
-              }) : null
-          ],
+        JsxRuntime.jsx("div", {
+          children: JsxRuntime.jsx("button", {
+            children: division.title,
+            className: "text-left text-sm font-semibold text-stone-800 hover:text-sky-700",
+            onClick: param => setFocusedDivisionKey(param => key)
+          }),
           className: "flex items-center gap-2"
         }),
         hasChildren ? JsxRuntime.jsx("ul", {
             children: Belt_Array.map(division.children, child => renderDivisionNav(child, key)),
-            className: "ml-4 list-disc text-xs text-stone-600"
+            className: "ml-4 list-disc text-sm text-stone-800"
           }) : null
       ],
-      className: "my-1"
+      className: "my-1  text-sm text-stone-800"
     }, key);
   };
   let findDivisionByKey = (divisions, targetKey, prefix) => Belt_Array.reduce(divisions, undefined, (acc, division) => {
@@ -411,14 +420,14 @@ function App(props) {
               ],
               className: "mb-4 flex items-center gap-3"
             }),
-            renderDivision(division, match$8[1])
+            renderFocusedDivision(division, match$8[1])
           ],
-          className: "rounded border border-stone-100 bg-white p-4"
+          className: "rounded border-stone-100 bg-white"
         });
       } else {
         tmp = JsxRuntime.jsx("div", {
           children: "That division is no longer available.",
-          className: "rounded border border-stone-100 bg-white p-4 text-sm text-stone-600"
+          className: "rounded border-stone-100 bg-white p-4 text-sm text-stone-600"
         });
       }
     } else {
@@ -433,7 +442,7 @@ function App(props) {
             className: "list-disc"
           })
         ],
-        className: "rounded border border-stone-100 bg-white p-4"
+        className: "rounded border-stone-100 bg-white p-4"
       });
     }
   } else {

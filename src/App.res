@@ -309,7 +309,7 @@ let make = () => {
             <div>
               {switch division.sections->Belt.Array.length > 0 {
               | true =>
-                <ul className="ml-6 list-disc text-sm text-stone-700">
+                <ul className="ml-2 list-disc text-sm text-stone-700">
                   {division.sections
                   ->Belt.Array.map(section => renderSection(section, key))
                   ->React.array}
@@ -351,11 +351,36 @@ let make = () => {
         </div>
   }
 
+  let renderFocusedDivision = (division, keyPrefix) => {
+    let key = divisionKey(keyPrefix, division)
+
+    <div>
+      {switch division.sections->Belt.Array.length > 0 {
+      | true =>
+        <ul className={"list-disc text-sm text-stone-700"}>
+          {division.sections
+          ->Belt.Array.map(section => renderSection(section, key))
+          ->React.array}
+        </ul>
+      | false => React.null
+      }}
+      {switch division.children->Belt.Array.length > 0 {
+      | true =>
+        <div className="border-stone-200">
+          {division.children
+          ->Belt.Array.map(child => renderDivision(child, key))
+          ->React.array}
+        </div>
+      | false => React.null
+      }}
+    </div>
+  }
+
   let rec renderDivisionNav = (division, keyPrefix) => {
     let key = divisionKey(keyPrefix, division)
     let hasChildren = division.children->Belt.Array.length > 0
 
-    <li key={key} className="my-1">
+    <li key={key} className="my-1  text-sm text-stone-800">
       <div className="flex items-center gap-2">
         <button
           className="text-left text-sm font-semibold text-stone-800 hover:text-sky-700"
@@ -365,14 +390,10 @@ let make = () => {
         >
           {React.string(division.title)}
         </button>
-        {switch hasChildren {
-        | true => <span className="text-xs text-stone-400"> {React.string("•")} </span>
-        | false => React.null
-        }}
       </div>
       {switch hasChildren {
       | true =>
-        <ul className="ml-4 list-disc text-xs text-stone-600">
+        <ul className="ml-4 list-disc text-sm text-stone-800">
           {division.children
           ->Belt.Array.map(child => renderDivisionNav(child, key))
           ->React.array}
@@ -491,7 +512,7 @@ let make = () => {
       }
       switch focusedDivisionKey {
       | None =>
-        <div className="rounded border border-stone-100 bg-white p-4">
+        <div className="rounded border-stone-100 bg-white p-4">
           <p className="mb-3 text-xs uppercase tracking-widest text-stone-500">
             {React.string("Divisions")}
           </p>
@@ -504,11 +525,11 @@ let make = () => {
       | Some(focusedKey) =>
         switch findDivisionByKey(visibleDivisions, focusedKey, "root") {
         | None =>
-          <div className="rounded border border-stone-100 bg-white p-4 text-sm text-stone-600">
+          <div className="rounded border-stone-100 bg-white p-4 text-sm text-stone-600">
             {React.string("That division is no longer available.")}
           </div>
         | Some((division, prefix)) =>
-          <div className="rounded border border-stone-100 bg-white p-4">
+          <div className="rounded border-stone-100 bg-white">
             <div className="mb-4 flex items-center gap-3">
               <button
                 className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
@@ -520,7 +541,7 @@ let make = () => {
                 {React.string(division.title)}
               </span>
             </div>
-            {renderDivision(division, prefix)}
+            {renderFocusedDivision(division, prefix)}
           </div>
         }
       }
