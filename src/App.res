@@ -24,7 +24,8 @@ let make = () => {
     Belt.Set.Int.fromArray([1, 2, 3, 4, 5])
   )
   let (showHeaders, setShowHeaders) = React.useState(() => true)
-  Console.log(divisions)
+  let (focusedDivisionKey, setFocusedDivisionKey) = React.useState(() => None)
+  let divisionKey = (prefix, title) => prefix ++ "/division/" ++ title
   let rec collectSectionKeys = (sections: array<section>, prefix, acc) =>
     sections->Belt.Array.reduce(acc, (acc, section) => {
       let key = prefix ++ "/section/" ++ section.title
@@ -74,8 +75,9 @@ let make = () => {
     ->Promise.then(payload => {
       let divisions = payload.divisions
       setDivisions(_ => Some(divisions))
-      setExpanded(_ => collectDivisionKeys(divisions, "root", Belt.Set.String.empty))
-      setExpandedItems(_ => collectDivisionItemKeys(divisions, "root", Belt.Set.String.empty))
+      setExpanded(_ => Belt.Set.String.empty)
+      setExpandedItems(_ => Belt.Set.String.empty)
+      setFocusedDivisionKey(_ => None)
       Promise.resolve()
     })
     ->Promise.catch(_ => {
@@ -93,7 +95,7 @@ let make = () => {
     let key = keyPrefix ++ "/item/" ++ link.title
     let isOpen = expandedItems->Belt.Set.String.has(key)
 
-    <li key={link.title} className="my-1">
+    <li key={key} className="my-1">
       <div className="flex items-center gap-2">
         <span>
           {switch hasHref {
@@ -149,6 +151,7 @@ let make = () => {
   }
 
   let query = filterText->String.toLowerCase
+  let isAllLevelsSelected = selectedLevels->Belt.Set.Int.size == 5
 
   let rec filterSection = (section: VitalLevel5.section) => {
     let titleMatch = section.title->String.toLowerCase->String.includes(query)
@@ -278,7 +281,7 @@ let make = () => {
   }
 
   let rec renderDivision = (division, keyPrefix) => {
-    let key = keyPrefix ++ "/division/" ++ division.title
+    let key = divisionKey(keyPrefix, division.title)
     let isOpen = expanded->Belt.Set.String.has(key)
 
     showHeaders
@@ -338,6 +341,59 @@ let make = () => {
           }}
         </div>
   }
+
+  let rec renderDivisionNav = (division, keyPrefix) => {
+    let key = divisionKey(keyPrefix, division.title)
+    let hasChildren = division.children->Belt.Array.length > 0
+
+    <li key={key} className="my-1">
+      <div className="flex items-center gap-2">
+        <button
+          className="text-left text-sm font-semibold text-stone-800 hover:text-sky-700"
+          onClick={_ => {
+            setFocusedDivisionKey(_ => Some(key))
+          }}
+        >
+          {React.string(division.title)}
+        </button>
+        {switch hasChildren {
+        | true => <span className="text-xs text-stone-400"> {React.string("•")} </span>
+        | false => React.null
+        }}
+      </div>
+      {switch hasChildren {
+      | true =>
+        <ul className="ml-4 list-disc text-xs text-stone-600">
+          {division.children
+          ->Belt.Array.map(child => renderDivisionNav(child, key))
+          ->React.array}
+        </ul>
+      | false => React.null
+      }}
+    </li>
+  }
+
+  let rec findDivisionByKey = (divisions, targetKey, prefix) =>
+    divisions->Belt.Array.reduce(None, (acc, division) =>
+      switch acc {
+      | Some(_) => acc
+      | None =>
+        let key = divisionKey(prefix, division.title)
+        if key == targetKey {
+          Some((division, prefix))
+        } else {
+          findDivisionByKey(division.children, targetKey, key)
+        }
+      }
+    )
+
+  React.useEffect1(() => {
+    switch focusedDivisionKey {
+    | Some(key) => setExpanded(prev => prev->Belt.Set.String.add(key))
+    | None => ()
+    }
+    None
+  }, [focusedDivisionKey])
 
   <div className="mx-auto max-w-5xl p-6">
     <div className="mb-8">
@@ -412,12 +468,46 @@ let make = () => {
     | (_, None) =>
       <div className="text-sm text-stone-500"> {React.string("Loading divisions…")} </div>
     | (_, Some(divisions)) =>
-      <div className="  bg-white">
-        {divisions
-        ->Belt.Array.keepMap(filterDivision)
-        ->Belt.Array.map(division => renderDivision(division, "root"))
-        ->React.array}
-      </div>
+      let visibleDivisions = if query == "" && isAllLevelsSelected {
+        divisions
+      } else {
+        divisions->Belt.Array.keepMap(filterDivision)
+      }
+      switch focusedDivisionKey {
+      | None =>
+        <div className="rounded border border-stone-100 bg-white p-4">
+          <p className="mb-3 text-xs uppercase tracking-widest text-stone-500">
+            {React.string("Divisions")}
+          </p>
+          <ul className="list-disc">
+            {visibleDivisions
+            ->Belt.Array.map(division => renderDivisionNav(division, "root"))
+            ->React.array}
+          </ul>
+        </div>
+      | Some(focusedKey) =>
+        switch findDivisionByKey(visibleDivisions, focusedKey, "root") {
+        | None =>
+          <div className="rounded border border-stone-100 bg-white p-4 text-sm text-stone-600">
+            {React.string("That division is no longer available.")}
+          </div>
+        | Some((division, prefix)) =>
+          <div className="rounded border border-stone-100 bg-white p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <button
+                className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+                onClick={_ => setFocusedDivisionKey(_ => None)}
+              >
+                {React.string("All divisions")}
+              </button>
+              <span className="text-sm font-semibold text-stone-800">
+                {React.string(division.title)}
+              </span>
+            </div>
+            {renderDivision(division, prefix)}
+          </div>
+        }
+      }
     }}
   </div>
 }
