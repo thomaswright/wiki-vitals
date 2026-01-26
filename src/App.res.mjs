@@ -370,10 +370,19 @@ function App(props) {
     }
   });
   React.useEffect(() => {
-    if (focusedDivisionKey !== undefined) {
-      setExpanded(prev => Belt_SetString.add(prev, focusedDivisionKey));
+    if (focusedDivisionKey !== undefined && divisions !== undefined) {
+      let match = findDivisionByKey(divisions, focusedDivisionKey, "root");
+      if (match !== undefined) {
+        let prefix = match[1];
+        let division = match[0];
+        setExpanded(param => collectDivisionKeys([division], prefix, undefined));
+        setExpandedItems(param => collectDivisionItemKeys([division], prefix, undefined));
+      }
     }
-  }, [focusedDivisionKey]);
+  }, [
+    focusedDivisionKey,
+    divisions
+  ]);
   let tmp;
   if (error !== undefined) {
     tmp = JsxRuntime.jsx("div", {

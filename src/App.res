@@ -396,13 +396,20 @@ let make = () => {
       }
     )
 
-  React.useEffect1(() => {
-    switch focusedDivisionKey {
-    | Some(key) => setExpanded(prev => prev->Belt.Set.String.add(key))
-    | None => ()
+  React.useEffect2(() => {
+    switch (focusedDivisionKey, divisions) {
+    | (Some(key), Some(divisions)) =>
+      switch findDivisionByKey(divisions, key, "root") {
+      | None => ()
+      | Some((division, prefix)) =>
+        setExpanded(_ => collectDivisionKeys([division], prefix, Belt.Set.String.empty))
+        setExpandedItems(_ => collectDivisionItemKeys([division], prefix, Belt.Set.String.empty))
+      }
+    | (None, _) => ()
+    | (_, None) => ()
     }
     None
-  }, [focusedDivisionKey])
+  }, (focusedDivisionKey, divisions))
 
   <div className="mx-auto max-w-5xl p-6">
     <div className="mb-8">
