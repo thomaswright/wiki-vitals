@@ -3,10 +3,10 @@
 import * as React from "react";
 import * as Belt_Array from "@rescript/runtime/lib/es6/Belt_Array.js";
 import * as Belt_SetInt from "@rescript/runtime/lib/es6/Belt_SetInt.js";
-import * as VitalLevel5 from "./wiki/VitalLevel5.res.mjs";
 import * as Belt_SetString from "@rescript/runtime/lib/es6/Belt_SetString.js";
 import * as Stdlib_Promise from "@rescript/runtime/lib/es6/Stdlib_Promise.js";
 import * as JsxRuntime from "react/jsx-runtime";
+import * as Primitive_exceptions from "@rescript/runtime/lib/es6/Primitive_exceptions.js";
 
 function App(props) {
   let levelMatchesSelection = (selectedLevels, levelOpt) => {
@@ -71,7 +71,14 @@ function App(props) {
     return collectDivisionItemKeys(division.children, key, nextAcc);
   });
   React.useEffect(() => {
-    Stdlib_Promise.$$catch(VitalLevel5.fetchDivisions().then(divisions => {
+    Stdlib_Promise.$$catch(fetch("/vitals-level5.json").then(response => {
+      if (response.ok) {
+        return response.json();
+      } else {
+        return Promise.reject(Primitive_exceptions.internalToException("Failed to load vitals-level5.json"));
+      }
+    }).then(payload => {
+      let divisions = payload.divisions;
       setDivisions(param => divisions);
       setExpanded(param => collectDivisionKeys(divisions, "root", undefined));
       setExpandedItems(param => collectDivisionItemKeys(divisions, "root", undefined));

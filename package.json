@@ -7,6 +7,7 @@
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript watch",
+    "build:data": "node scripts/build-vitals-json.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "@vitejs/plugin-react": "^5.0.2",
+    "jsdom": "^26.0.0",
     "tailwindcss": "^4.1.18",
     "vite": "^7.1.0"
   }

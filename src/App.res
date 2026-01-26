@@ -1,5 +1,13 @@
 open VitalLevel5
 
+module Data = {
+  type response
+  @val external fetch: string => promise<response> = "fetch"
+  @get external ok: response => bool = "ok"
+  type promiseReturn = {divisions: array<VitalLevel5.division>}
+  @send external json: response => promise<promiseReturn> = "json"
+}
+
 @react.component
 let make = () => {
   let levelMatchesSelection = (selectedLevels, levelOpt: option<int>) =>
@@ -55,8 +63,16 @@ let make = () => {
     })
 
   React.useEffect0(() => {
-    VitalLevel5.fetchDivisions()
-    ->Promise.then(divisions => {
+    Data.fetch("/vitals-level5.json")
+    ->Promise.then(response =>
+      if Data.ok(response) {
+        Data.json(response)
+      } else {
+        Promise.reject(JsExn.anyToExnInternal("Failed to load vitals-level5.json"))
+      }
+    )
+    ->Promise.then(payload => {
+      let divisions = payload.divisions
       setDivisions(_ => Some(divisions))
       setExpanded(_ => collectDivisionKeys(divisions, "root", Belt.Set.String.empty))
       setExpandedItems(_ => collectDivisionItemKeys(divisions, "root", Belt.Set.String.empty))
