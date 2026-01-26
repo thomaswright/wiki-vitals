@@ -19,6 +19,7 @@ let make = () => {
   let (error, setError) = React.useState(() => None)
   let (filterText, setFilterText) = React.useState(() => "")
   let (debouncedFilterText, setDebouncedFilterText) = React.useState(() => "")
+  let (includeChildrenOnMatch, setIncludeChildrenOnMatch) = React.useState(() => true)
   let (expanded, setExpanded) = React.useState(() => Belt.Set.String.empty)
   let (expandedItems, setExpandedItems) = React.useState(() => Belt.Set.String.empty)
   let (selectedLevels, setSelectedLevels) = React.useState(() =>
@@ -106,11 +107,40 @@ let make = () => {
     Some(() => clearTimeout(timeoutId))
   }, [filterText])
 
+  let query = debouncedFilterText->String.toLowerCase
+  let isAllLevelsSelected = selectedLevels->Belt.Set.Int.size == 5
+
+  let itemMatches = (item: VitalLevel5.link) =>
+    levelMatchesSelection(selectedLevels, item.level) &&
+    item.title->String.toLowerCase->String.includes(query)
+
+  let rec itemHasMatch = (item: VitalLevel5.link) =>
+    itemMatches(item) ||
+    item.children->Belt.Array.some(child => itemHasMatch(child))
+
+  let sectionMatches = (section: VitalLevel5.section) =>
+    section.title->String.toLowerCase->String.includes(query)
+
+  let rec sectionHasMatch = (section: VitalLevel5.section) =>
+    sectionMatches(section) ||
+    section.items->Belt.Array.some(item => itemHasMatch(item)) ||
+    section.children->Belt.Array.some(child => sectionHasMatch(child))
+
+  let divisionMatches = (division: VitalLevel5.division) =>
+    division.title->String.toLowerCase->String.includes(query)
+
+  let rec divisionHasMatch = (division: VitalLevel5.division) =>
+    divisionMatches(division) ||
+    division.sections->Belt.Array.some(section => sectionHasMatch(section)) ||
+    division.children->Belt.Array.some(child => divisionHasMatch(child))
+
   let rec renderLink = (link: VitalLevel5.link, keyPrefix) => {
     let hasHref = link.href != ""
     let href = "https://en.wikipedia.org" ++ link.href
     let key = itemKey(keyPrefix, link)
-    let isOpen = expandedItems->Belt.Set.String.has(key)
+    let isOpen =
+      expandedItems->Belt.Set.String.has(key) ||
+      (includeChildrenOnMatch && query != "" && itemHasMatch(link))
 
     <li key={key} className="my-1">
       <div className="flex items-center gap-2">
@@ -167,16 +197,18 @@ let make = () => {
     </li>
   }
 
-  let query = debouncedFilterText->String.toLowerCase
-  let isAllLevelsSelected = selectedLevels->Belt.Set.Int.size == 5
-
   let rec filterSection = (section: VitalLevel5.section) => {
-    let titleMatch = section.title->String.toLowerCase->String.includes(query)
+    let titleMatch = sectionMatches(section)
 
     let rec filterItem = (item: VitalLevel5.link) => {
       let levelMatch = levelMatchesSelection(selectedLevels, item.level)
       let itemMatch = item.title->String.toLowerCase->String.includes(query)
-      let children = item.children->Belt.Array.keepMap(filterItem)
+      let children =
+        if includeChildrenOnMatch && query != "" && itemMatch {
+          item.children
+        } else {
+          item.children->Belt.Array.keepMap(filterItem)
+        }
       if levelMatch && (query == "" || itemMatch) {
         Some({...item, children})
       } else if children->Belt.Array.length > 0 {
@@ -186,8 +218,18 @@ let make = () => {
       }
     }
 
-    let items = section.items->Belt.Array.keepMap(filterItem)
-    let children = section.children->Belt.Array.keepMap(filterSection)
+    let items =
+      if includeChildrenOnMatch && query != "" && titleMatch {
+        section.items
+      } else {
+        section.items->Belt.Array.keepMap(filterItem)
+      }
+    let children =
+      if includeChildrenOnMatch && query != "" && titleMatch {
+        section.children
+      } else {
+        section.children->Belt.Array.keepMap(filterSection)
+      }
 
     if query == "" {
       if items->Belt.Array.length > 0 || children->Belt.Array.length > 0 {
@@ -203,9 +245,19 @@ let make = () => {
   }
 
   let rec filterDivision = (division: VitalLevel5.division) => {
-    let titleMatch = division.title->String.toLowerCase->String.includes(query)
-    let sections = division.sections->Belt.Array.keepMap(filterSection)
-    let children = division.children->Belt.Array.keepMap(filterDivision)
+    let titleMatch = divisionMatches(division)
+    let sections =
+      if includeChildrenOnMatch && query != "" && titleMatch {
+        division.sections
+      } else {
+        division.sections->Belt.Array.keepMap(filterSection)
+      }
+    let children =
+      if includeChildrenOnMatch && query != "" && titleMatch {
+        division.children
+      } else {
+        division.children->Belt.Array.keepMap(filterDivision)
+      }
 
     if query == "" {
       if sections->Belt.Array.length > 0 || children->Belt.Array.length > 0 {
@@ -243,7 +295,9 @@ let make = () => {
 
   let rec renderSection = (section: section, keyPrefix, depth) => {
     let key = sectionKey(keyPrefix, section)
-    let isOpen = expanded->Belt.Set.String.has(key)
+    let isOpen =
+      expanded->Belt.Set.String.has(key) ||
+      (includeChildrenOnMatch && query != "" && sectionHasMatch(section))
 
     showHeaders
       ? <div key className={depth == 0 ? "" : "ml-4"}>
@@ -301,7 +355,9 @@ let make = () => {
 
   let rec renderDivision = (division, keyPrefix, depth) => {
     let key = divisionKey(keyPrefix, division)
-    let isOpen = expanded->Belt.Set.String.has(key)
+    let isOpen =
+      expanded->Belt.Set.String.has(key) ||
+      (includeChildrenOnMatch && query != "" && divisionHasMatch(division))
 
     showHeaders
       ? <div key className={depth == 0 ? "" : "ml-4"}>
@@ -459,6 +515,15 @@ let make = () => {
           onChange={event => setFilterText(_ => (event->ReactEvent.Form.target)["value"])}
           className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none"
         />
+        <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <input
+            type_="checkbox"
+            checked={includeChildrenOnMatch}
+            onChange={_ => setIncludeChildrenOnMatch(prev => !prev)}
+            className="h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300"
+          />
+          {React.string("And children")}
+        </label>
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4, 5]
           ->Belt.Array.map(level => {

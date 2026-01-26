@@ -27,30 +27,33 @@ function App(props) {
   let filterText = match$2[0];
   let match$3 = React.useState(() => "");
   let setDebouncedFilterText = match$3[1];
-  let match$4 = React.useState(() => {});
-  let setExpanded = match$4[1];
-  let expanded = match$4[0];
+  let match$4 = React.useState(() => true);
+  let setIncludeChildrenOnMatch = match$4[1];
+  let includeChildrenOnMatch = match$4[0];
   let match$5 = React.useState(() => {});
-  let setExpandedItems = match$5[1];
-  let expandedItems = match$5[0];
-  let match$6 = React.useState(() => Belt_SetInt.fromArray([
+  let setExpanded = match$5[1];
+  let expanded = match$5[0];
+  let match$6 = React.useState(() => {});
+  let setExpandedItems = match$6[1];
+  let expandedItems = match$6[0];
+  let match$7 = React.useState(() => Belt_SetInt.fromArray([
     1,
     2,
     3,
     4,
     5
   ]));
-  let setSelectedLevels = match$6[1];
-  let selectedLevels = match$6[0];
-  let match$7 = React.useState(() => true);
-  let setShowHeaders = match$7[1];
-  let showHeaders = match$7[0];
-  let match$8 = React.useState(() => {});
-  let setFocusedDivisionKey = match$8[1];
-  let focusedDivisionKey = match$8[0];
-  let match$9 = React.useState(() => false);
-  let setShowAllDivisions = match$9[1];
-  let showAllDivisions = match$9[0];
+  let setSelectedLevels = match$7[1];
+  let selectedLevels = match$7[0];
+  let match$8 = React.useState(() => true);
+  let setShowHeaders = match$8[1];
+  let showHeaders = match$8[0];
+  let match$9 = React.useState(() => {});
+  let setFocusedDivisionKey = match$9[1];
+  let focusedDivisionKey = match$9[0];
+  let match$10 = React.useState(() => false);
+  let setShowAllDivisions = match$10[1];
+  let showAllDivisions = match$10[0];
   let divisionKey = (prefix, division) => {
     let slug = division.href !== "" ? division.href : division.title;
     return prefix + "/division/" + slug;
@@ -112,11 +115,43 @@ function App(props) {
       clearTimeout(timeoutId);
     };
   }, [filterText]);
+  let query = match$3[0].toLowerCase();
+  let isAllLevelsSelected = Belt_SetInt.size(selectedLevels) === 5;
+  let itemMatches = item => {
+    if (levelMatchesSelection(selectedLevels, item.level)) {
+      return item.title.toLowerCase().includes(query);
+    } else {
+      return false;
+    }
+  };
+  let itemHasMatch = item => {
+    if (itemMatches(item)) {
+      return true;
+    } else {
+      return Belt_Array.some(item.children, itemHasMatch);
+    }
+  };
+  let sectionMatches = section => section.title.toLowerCase().includes(query);
+  let sectionHasMatch = section => {
+    if (sectionMatches(section) || Belt_Array.some(section.items, itemHasMatch)) {
+      return true;
+    } else {
+      return Belt_Array.some(section.children, sectionHasMatch);
+    }
+  };
+  let divisionMatches = division => division.title.toLowerCase().includes(query);
+  let divisionHasMatch = division => {
+    if (divisionMatches(division) || Belt_Array.some(division.sections, sectionHasMatch)) {
+      return true;
+    } else {
+      return Belt_Array.some(division.children, divisionHasMatch);
+    }
+  };
   let renderLink = (link, keyPrefix) => {
     let hasHref = link.href !== "";
     let href = "https://en.wikipedia.org" + link.href;
     let key = itemKey(keyPrefix, link);
-    let isOpen = Belt_SetString.has(expandedItems, key);
+    let isOpen = Belt_SetString.has(expandedItems, key) || includeChildrenOnMatch && query !== "" && itemHasMatch(link);
     let level = link.level;
     return JsxRuntime.jsxs("li", {
       children: [
@@ -162,14 +197,12 @@ function App(props) {
       className: "my-1"
     }, key);
   };
-  let query = match$3[0].toLowerCase();
-  let isAllLevelsSelected = Belt_SetInt.size(selectedLevels) === 5;
   let filterSection = section => {
-    let titleMatch = section.title.toLowerCase().includes(query);
+    let titleMatch = sectionMatches(section);
     let filterItem = item => {
       let levelMatch = levelMatchesSelection(selectedLevels, item.level);
       let itemMatch = item.title.toLowerCase().includes(query);
-      let children = Belt_Array.keepMap(item.children, filterItem);
+      let children = includeChildrenOnMatch && query !== "" && itemMatch ? item.children : Belt_Array.keepMap(item.children, filterItem);
       if (levelMatch && (query === "" || itemMatch) || children.length !== 0) {
         return {
           title: item.title,
@@ -179,8 +212,8 @@ function App(props) {
         };
       }
     };
-    let items = Belt_Array.keepMap(section.items, filterItem);
-    let children = Belt_Array.keepMap(section.children, filterSection);
+    let items = includeChildrenOnMatch && query !== "" && titleMatch ? section.items : Belt_Array.keepMap(section.items, filterItem);
+    let children = includeChildrenOnMatch && query !== "" && titleMatch ? section.children : Belt_Array.keepMap(section.children, filterSection);
     if (query === "") {
       if (items.length !== 0 || children.length !== 0) {
         return {
@@ -204,9 +237,9 @@ function App(props) {
     }
   };
   let filterDivision = division => {
-    let titleMatch = division.title.toLowerCase().includes(query);
-    let sections = Belt_Array.keepMap(division.sections, filterSection);
-    let children = Belt_Array.keepMap(division.children, filterDivision);
+    let titleMatch = divisionMatches(division);
+    let sections = includeChildrenOnMatch && query !== "" && titleMatch ? division.sections : Belt_Array.keepMap(division.sections, filterSection);
+    let children = includeChildrenOnMatch && query !== "" && titleMatch ? division.children : Belt_Array.keepMap(division.children, filterDivision);
     if (query === "") {
       if (sections.length !== 0 || children.length !== 0) {
         return {
@@ -244,7 +277,7 @@ function App(props) {
   };
   let renderSection = (section, keyPrefix, depth) => {
     let key = sectionKey(keyPrefix, section);
-    let isOpen = Belt_SetString.has(expanded, key);
+    let isOpen = Belt_SetString.has(expanded, key) || includeChildrenOnMatch && query !== "" && sectionHasMatch(section);
     if (showHeaders) {
       return JsxRuntime.jsxs("div", {
         children: [
@@ -293,7 +326,7 @@ function App(props) {
   };
   let renderDivision = (division, keyPrefix, depth) => {
     let key = divisionKey(keyPrefix, division);
-    let isOpen = Belt_SetString.has(expanded, key);
+    let isOpen = Belt_SetString.has(expanded, key) || includeChildrenOnMatch && query !== "" && divisionHasMatch(division);
     if (showHeaders) {
       return JsxRuntime.jsxs("div", {
         children: [
@@ -422,9 +455,9 @@ function App(props) {
   } else if (divisions !== undefined) {
     let visibleDivisions = query === "" && isAllLevelsSelected ? divisions : Belt_Array.keepMap(divisions, filterDivision);
     if (focusedDivisionKey !== undefined) {
-      let match$10 = findDivisionByKey(visibleDivisions, focusedDivisionKey, "root");
-      if (match$10 !== undefined) {
-        let division = match$10[0];
+      let match$11 = findDivisionByKey(visibleDivisions, focusedDivisionKey, "root");
+      if (match$11 !== undefined) {
+        let division = match$11[0];
         tmp = JsxRuntime.jsxs("div", {
           children: [
             JsxRuntime.jsxs("div", {
@@ -444,7 +477,7 @@ function App(props) {
               ],
               className: "mb-4 flex items-center gap-3"
             }),
-            renderFocusedDivision(division, match$10[1])
+            renderFocusedDivision(division, match$11[1])
           ],
           className: "rounded border-stone-100 bg-white"
         });
@@ -520,6 +553,18 @@ function App(props) {
                 placeholder: "Filter sections or articles",
                 value: filterText,
                 onChange: event => setFilterText(param => event.target.value)
+              }),
+              JsxRuntime.jsxs("label", {
+                children: [
+                  JsxRuntime.jsx("input", {
+                    className: "h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300",
+                    checked: includeChildrenOnMatch,
+                    type: "checkbox",
+                    onChange: param => setIncludeChildrenOnMatch(prev => !prev)
+                  }),
+                  "And children"
+                ],
+                className: "flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
               }),
               JsxRuntime.jsxs("div", {
                 children: [
