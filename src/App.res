@@ -83,6 +83,71 @@ let rec findSectionByKey = (divisions, targetKey, prefix) =>
     }
   )
 
+let rec findDivisionByKey = (divisions, targetKey, prefix) =>
+  divisions->Belt.Array.reduce(None, (acc, division) =>
+    switch acc {
+    | Some(_) => acc
+    | None =>
+      let key = divisionKey(prefix, division)
+      if key == targetKey {
+        Some((division, prefix))
+      } else {
+        findDivisionByKey(division.children, targetKey, key)
+      }
+    }
+  )
+
+let rec findDivisionPathByKey = (divisions, targetKey, prefix) =>
+  divisions->Belt.Array.reduce(None, (acc, division) =>
+    switch acc {
+    | Some(_) => acc
+    | None =>
+      let key = divisionKey(prefix, division)
+      if key == targetKey {
+        Some([division.title])
+      } else {
+        switch findDivisionPathByKey(division.children, targetKey, key) {
+        | None => None
+        | Some(path) => Some([division.title, ...path])
+        }
+      }
+    }
+  )
+
+let rec findSectionPathInSections = (sections, targetKey, prefix) =>
+  sections->Belt.Array.reduce(None, (acc, section) =>
+    switch acc {
+    | Some(_) => acc
+    | None =>
+      let key = sectionKey(prefix, section)
+      if key == targetKey {
+        Some([section.title])
+      } else {
+        switch findSectionPathInSections(section.children, targetKey, key) {
+        | None => None
+        | Some(path) => Some([section.title, ...path])
+        }
+      }
+    }
+  )
+
+let rec findSectionPathByKey = (divisions, targetKey, prefix) =>
+  divisions->Belt.Array.reduce(None, (acc, division) =>
+    switch acc {
+    | Some(_) => acc
+    | None =>
+      let key = divisionKey(prefix, division)
+      switch findSectionPathInSections(division.sections, targetKey, key) {
+      | Some(path) => Some([division.title, ...path])
+      | None =>
+        switch findSectionPathByKey(division.children, targetKey, key) {
+        | None => None
+        | Some(path) => Some([division.title, ...path])
+        }
+      }
+    }
+  )
+
 module ListView = {
   @react.component
   let make = (
@@ -439,20 +504,6 @@ module ListView = {
       </div>
     }
 
-    let rec findDivisionByKey = (divisions, targetKey, prefix) =>
-      divisions->Belt.Array.reduce(None, (acc, division) =>
-        switch acc {
-        | Some(_) => acc
-        | None =>
-          let key = divisionKey(prefix, division)
-          if key == targetKey {
-            Some((division, prefix))
-          } else {
-            findDivisionByKey(division.children, targetKey, key)
-          }
-        }
-      )
-
     switch (error, divisions) {
     | (Some(message), _) =>
       <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -485,6 +536,10 @@ module ListView = {
             {React.string("That division is no longer available.")}
           </div>
         | Some((division, prefix)) =>
+          let breadcrumb =
+            findDivisionPathByKey(visibleDivisions, focusedKey, "root")->Belt.Option.getWithDefault([
+              division.title,
+            ])
           <div className="rounded border-stone-100 bg-white">
             <div className="mb-4 flex items-center gap-3">
               <button
@@ -496,9 +551,19 @@ module ListView = {
               >
                 {React.string("All divisions")}
               </button>
-              <span className="text-sm font-semibold text-stone-800">
-                {React.string(division.title)}
-              </span>
+              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800">
+                {breadcrumb
+                ->Belt.Array.mapWithIndex((index, title) =>
+                    <React.fragment key={title}>
+                      <span> {React.string(title)} </span>
+                      {switch index < breadcrumb->Belt.Array.length - 1 {
+                      | true => <span className="text-stone-400"> {React.string("›")} </span>
+                      | false => React.null
+                      }}
+                    </React.fragment>
+                  )
+                ->React.array}
+              </div>
             </div>
             {renderFocusedDivision(division, prefix)}
           </div>
@@ -510,6 +575,10 @@ module ListView = {
             {React.string("That section is no longer available.")}
           </div>
         | Some((section, prefix)) =>
+          let breadcrumb =
+            findSectionPathByKey(visibleDivisions, focusedKey, "root")->Belt.Option.getWithDefault([
+              section.title,
+            ])
           <div className="rounded border-stone-100 bg-white">
             <div className="mb-4 flex items-center gap-3">
               <button
@@ -521,9 +590,19 @@ module ListView = {
               >
                 {React.string("All divisions")}
               </button>
-              <span className="text-sm font-semibold text-stone-800">
-                {React.string(section.title)}
-              </span>
+              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800">
+                {breadcrumb
+                ->Belt.Array.mapWithIndex((index, title) =>
+                    <React.fragment key={title}>
+                      <span> {React.string(title)} </span>
+                      {switch index < breadcrumb->Belt.Array.length - 1 {
+                      | true => <span className="text-stone-400"> {React.string("›")} </span>
+                      | false => React.null
+                      }}
+                    </React.fragment>
+                  )
+                ->React.array}
+              </div>
             </div>
             {renderSection(section, prefix, 0)}
           </div>
@@ -615,29 +694,50 @@ let make = () => {
   let expandAll = () =>
     switch divisions {
     | Some(divisions) =>
-      setExpanded(_ => collectDivisionKeys(divisions, "root", Belt.Set.String.empty))
-      setExpandedItems(_ => collectDivisionItemKeys(divisions, "root", Belt.Set.String.empty))
+      switch (focusedDivisionKey, focusedSectionKey) {
+      | (Some(key), _) =>
+        switch findDivisionByKey(divisions, key, "root") {
+        | None => ()
+        | Some((division, prefix)) =>
+          setExpanded(_ => collectDivisionKeys([division], prefix, Belt.Set.String.empty))
+          setExpandedItems(_ => collectDivisionItemKeys([division], prefix, Belt.Set.String.empty))
+        }
+      | (None, Some(key)) =>
+        switch findSectionByKey(divisions, key, "root") {
+        | None => ()
+        | Some((section, prefix)) =>
+          setExpanded(_ => collectSectionKeys([section], prefix, Belt.Set.String.empty))
+          setExpandedItems(_ => collectAllItemKeys([section], prefix, Belt.Set.String.empty))
+        }
+      | (None, None) =>
+        setExpanded(_ => collectDivisionKeys(divisions, "root", Belt.Set.String.empty))
+        setExpandedItems(_ => collectDivisionItemKeys(divisions, "root", Belt.Set.String.empty))
+      }
     | None => ()
     }
 
   let collapseAll = () => {
-    setExpanded(_ => Belt.Set.String.empty)
-    setExpandedItems(_ => Belt.Set.String.empty)
-  }
-
-  let rec findDivisionByKey = (divisions, targetKey, prefix) =>
-    divisions->Belt.Array.reduce(None, (acc, division) =>
-      switch acc {
-      | Some(_) => acc
-      | None =>
-        let key = divisionKey(prefix, division)
-        if key == targetKey {
-          Some((division, prefix))
-        } else {
-          findDivisionByKey(division.children, targetKey, key)
-        }
+    switch (divisions, focusedDivisionKey, focusedSectionKey) {
+    | (Some(divisions), Some(key), _) =>
+      switch findDivisionByKey(divisions, key, "root") {
+      | None => ()
+      | Some((division, prefix)) =>
+        setExpanded(_ => Belt.Set.String.add(Belt.Set.String.empty, divisionKey(prefix, division)))
+        setExpandedItems(_ => Belt.Set.String.empty)
       }
-    )
+    | (Some(divisions), None, Some(key)) =>
+      switch findSectionByKey(divisions, key, "root") {
+      | None => ()
+      | Some((section, prefix)) =>
+        setExpanded(_ => Belt.Set.String.add(Belt.Set.String.empty, sectionKey(prefix, section)))
+        setExpandedItems(_ => Belt.Set.String.empty)
+      }
+    | (_, None, None) =>
+      setExpanded(_ => Belt.Set.String.empty)
+      setExpandedItems(_ => Belt.Set.String.empty)
+    | _ => ()
+    }
+  }
 
   React.useEffect3(() => {
     switch (divisions, focusedDivisionKey, focusedSectionKey) {

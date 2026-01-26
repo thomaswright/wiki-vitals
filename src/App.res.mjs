@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import * as Belt_Array from "@rescript/runtime/lib/es6/Belt_Array.js";
+import * as Belt_Option from "@rescript/runtime/lib/es6/Belt_Option.js";
 import * as Belt_SetInt from "@rescript/runtime/lib/es6/Belt_SetInt.js";
 import * as Belt_SetString from "@rescript/runtime/lib/es6/Belt_SetString.js";
 import * as Stdlib_Promise from "@rescript/runtime/lib/es6/Stdlib_Promise.js";
@@ -91,6 +92,84 @@ function findSectionByKey(divisions, targetKey, prefix) {
       return result;
     } else {
       return findSectionByKey(division.children, targetKey, key);
+    }
+  });
+}
+
+function findDivisionByKey(divisions, targetKey, prefix) {
+  return Belt_Array.reduce(divisions, undefined, (acc, division) => {
+    if (acc !== undefined) {
+      return acc;
+    }
+    let key = divisionKey(prefix, division);
+    if (key === targetKey) {
+      return [
+        division,
+        prefix
+      ];
+    } else {
+      return findDivisionByKey(division.children, targetKey, key);
+    }
+  });
+}
+
+function findDivisionPathByKey(divisions, targetKey, prefix) {
+  return Belt_Array.reduce(divisions, undefined, (acc, division) => {
+    if (acc !== undefined) {
+      return acc;
+    }
+    let key = divisionKey(prefix, division);
+    if (key === targetKey) {
+      return [division.title];
+    }
+    let path = findDivisionPathByKey(division.children, targetKey, key);
+    if (path !== undefined) {
+      return Belt_Array.concatMany([
+        [division.title],
+        path
+      ]);
+    }
+  });
+}
+
+function findSectionPathInSections(sections, targetKey, prefix) {
+  return Belt_Array.reduce(sections, undefined, (acc, section) => {
+    if (acc !== undefined) {
+      return acc;
+    }
+    let key = sectionKey(prefix, section);
+    if (key === targetKey) {
+      return [section.title];
+    }
+    let path = findSectionPathInSections(section.children, targetKey, key);
+    if (path !== undefined) {
+      return Belt_Array.concatMany([
+        [section.title],
+        path
+      ]);
+    }
+  });
+}
+
+function findSectionPathByKey(divisions, targetKey, prefix) {
+  return Belt_Array.reduce(divisions, undefined, (acc, division) => {
+    if (acc !== undefined) {
+      return acc;
+    }
+    let key = divisionKey(prefix, division);
+    let path = findSectionPathInSections(division.sections, targetKey, key);
+    if (path !== undefined) {
+      return Belt_Array.concatMany([
+        [division.title],
+        path
+      ]);
+    }
+    let path$1 = findSectionPathByKey(division.children, targetKey, key);
+    if (path$1 !== undefined) {
+      return Belt_Array.concatMany([
+        [division.title],
+        path$1
+      ]);
     }
   });
 }
@@ -393,20 +472,6 @@ function App$ListView(props) {
       ]
     });
   };
-  let findDivisionByKey = (divisions, targetKey, prefix) => Belt_Array.reduce(divisions, undefined, (acc, division) => {
-    if (acc !== undefined) {
-      return acc;
-    }
-    let key = divisionKey(prefix, division);
-    if (key === targetKey) {
-      return [
-        division,
-        prefix
-      ];
-    } else {
-      return findDivisionByKey(division.children, targetKey, key);
-    }
-  });
   if (error !== undefined) {
     return JsxRuntime.jsx("div", {
       children: error,
@@ -429,6 +494,7 @@ function App$ListView(props) {
       });
     }
     let division = match[0];
+    let breadcrumb = Belt_Option.getWithDefault(findDivisionPathByKey(visibleDivisions, focusedDivisionKey, "root"), [division.title]);
     return JsxRuntime.jsxs("div", {
       children: [
         JsxRuntime.jsxs("div", {
@@ -441,9 +507,19 @@ function App$ListView(props) {
                 setFocusedSectionKey(param => {});
               }
             }),
-            JsxRuntime.jsx("span", {
-              children: division.title,
-              className: "text-sm font-semibold text-stone-800"
+            JsxRuntime.jsx("div", {
+              children: Belt_Array.mapWithIndex(breadcrumb, (index, title) => JsxRuntime.jsxs(React.Fragment, {
+                children: [
+                  JsxRuntime.jsx("span", {
+                    children: title
+                  }),
+                  index < (breadcrumb.length - 1 | 0) ? JsxRuntime.jsx("span", {
+                      children: "›",
+                      className: "text-stone-400"
+                    }) : null
+                ]
+              }, title)),
+              className: "flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800"
             })
           ],
           className: "mb-4 flex items-center gap-3"
@@ -476,6 +552,7 @@ function App$ListView(props) {
     });
   }
   let section = match$1[0];
+  let breadcrumb$1 = Belt_Option.getWithDefault(findSectionPathByKey(visibleDivisions, focusedSectionKey, "root"), [section.title]);
   return JsxRuntime.jsxs("div", {
     children: [
       JsxRuntime.jsxs("div", {
@@ -488,9 +565,19 @@ function App$ListView(props) {
               setFocusedDivisionKey(param => {});
             }
           }),
-          JsxRuntime.jsx("span", {
-            children: section.title,
-            className: "text-sm font-semibold text-stone-800"
+          JsxRuntime.jsx("div", {
+            children: Belt_Array.mapWithIndex(breadcrumb$1, (index, title) => JsxRuntime.jsxs(React.Fragment, {
+              children: [
+                JsxRuntime.jsx("span", {
+                  children: title
+                }),
+                index < (breadcrumb$1.length - 1 | 0) ? JsxRuntime.jsx("span", {
+                    children: "›",
+                    className: "text-stone-400"
+                  }) : null
+              ]
+            }, title)),
+            className: "flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-800"
           })
         ],
         className: "mb-4 flex items-center gap-3"
@@ -584,25 +671,62 @@ function App(props) {
     setShowSlowFilterLabel(param => false);
   }, [isPending]);
   let expandAll = () => {
+    if (divisions === undefined) {
+      return;
+    }
+    if (focusedDivisionKey !== undefined) {
+      let match = findDivisionByKey(divisions, focusedDivisionKey, "root");
+      if (match === undefined) {
+        return;
+      }
+      let prefix = match[1];
+      let division = match[0];
+      setExpanded(param => collectDivisionKeys([division], prefix, undefined));
+      return setExpandedItems(param => collectDivisionItemKeys([division], prefix, undefined));
+    }
+    if (focusedSectionKey !== undefined) {
+      let match$1 = findSectionByKey(divisions, focusedSectionKey, "root");
+      if (match$1 === undefined) {
+        return;
+      }
+      let prefix$1 = match$1[1];
+      let section = match$1[0];
+      setExpanded(param => collectSectionKeys([section], prefix$1, undefined));
+      return setExpandedItems(param => collectAllItemKeys([section], prefix$1, undefined));
+    }
+    setExpanded(param => collectDivisionKeys(divisions, "root", undefined));
+    setExpandedItems(param => collectDivisionItemKeys(divisions, "root", undefined));
+  };
+  let collapseAll = () => {
     if (divisions !== undefined) {
-      setExpanded(param => collectDivisionKeys(divisions, "root", undefined));
-      return setExpandedItems(param => collectDivisionItemKeys(divisions, "root", undefined));
+      if (focusedDivisionKey !== undefined) {
+        let match = findDivisionByKey(divisions, focusedDivisionKey, "root");
+        if (match === undefined) {
+          return;
+        }
+        let prefix = match[1];
+        let division = match[0];
+        setExpanded(param => Belt_SetString.add(undefined, divisionKey(prefix, division)));
+        return setExpandedItems(param => {});
+      }
+      if (focusedSectionKey !== undefined) {
+        let match$1 = findSectionByKey(divisions, focusedSectionKey, "root");
+        if (match$1 === undefined) {
+          return;
+        }
+        let prefix$1 = match$1[1];
+        let section = match$1[0];
+        setExpanded(param => Belt_SetString.add(undefined, sectionKey(prefix$1, section)));
+        return setExpandedItems(param => {});
+      }
+    }
+    if (focusedDivisionKey !== undefined || focusedSectionKey !== undefined) {
+      return;
+    } else {
+      setExpanded(param => {});
+      return setExpandedItems(param => {});
     }
   };
-  let findDivisionByKey = (divisions, targetKey, prefix) => Belt_Array.reduce(divisions, undefined, (acc, division) => {
-    if (acc !== undefined) {
-      return acc;
-    }
-    let key = divisionKey(prefix, division);
-    if (key === targetKey) {
-      return [
-        division,
-        prefix
-      ];
-    } else {
-      return findDivisionByKey(division.children, targetKey, key);
-    }
-  });
   React.useEffect(() => {
     if (divisions !== undefined) {
       if (focusedDivisionKey !== undefined) {
@@ -709,10 +833,7 @@ function App(props) {
                   JsxRuntime.jsx("button", {
                     children: "Collapse all",
                     className: "rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
-                    onClick: param => {
-                      setExpanded(param => {});
-                      setExpandedItems(param => {});
-                    }
+                    onClick: param => collapseAll()
                   })
                 ],
                 className: "flex flex-wrap gap-2"
