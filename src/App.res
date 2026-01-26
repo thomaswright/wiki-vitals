@@ -50,6 +50,39 @@ let rec collectDivisionItemKeys = (divisions, prefix, acc) =>
     collectDivisionItemKeys(division.children, key, nextAcc)
   })
 
+let collectTopDivisionKeys = (divisions: array<division>, prefix, acc) =>
+  divisions->Belt.Array.reduce(acc, (acc, division: division) => {
+    let key = divisionKey(prefix, division)
+    acc->Belt.Set.String.add(key)
+  })
+
+let rec findSectionByKeyInSections = (sections, targetKey, prefix) =>
+  sections->Belt.Array.reduce(None, (acc, section) =>
+    switch acc {
+    | Some(_) => acc
+    | None =>
+      let key = sectionKey(prefix, section)
+      if key == targetKey {
+        Some((section, prefix))
+      } else {
+        findSectionByKeyInSections(section.children, targetKey, key)
+      }
+    }
+  )
+
+let rec findSectionByKey = (divisions, targetKey, prefix) =>
+  divisions->Belt.Array.reduce(None, (acc, division) =>
+    switch acc {
+    | Some(_) => acc
+    | None =>
+      let key = divisionKey(prefix, division)
+      switch findSectionByKeyInSections(division.sections, targetKey, key) {
+      | Some(result) => Some(result)
+      | None => findSectionByKey(division.children, targetKey, key)
+      }
+    }
+  )
+
 module ListView = {
   @react.component
   let make = (
@@ -62,11 +95,11 @@ module ListView = {
     ~selectedLevels,
     ~showHeaders,
     ~focusedDivisionKey,
-    ~showAllDivisions,
+    ~focusedSectionKey,
     ~setExpanded,
     ~setExpandedItems,
     ~setFocusedDivisionKey,
-    ~setShowAllDivisions,
+    ~setFocusedSectionKey,
   ) => {
     let levelMatchesSelection = (selectedLevels, levelOpt: option<int>) =>
       switch levelOpt {
@@ -249,12 +282,20 @@ module ListView = {
 
       showHeaders
         ? <div key className={depth == 0 ? "" : "ml-4"}>
-            <div className="flex items-center gap-2 font-semibold text-stone-800">
-              <span> {React.string(section.title)} </span>
-              <button
-                className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
-                onClick={_ => toggleExpanded(key)}
-              >
+          <div className="flex items-center gap-2 font-semibold text-stone-800">
+            <button
+              className="text-left text-sm font-semibold text-stone-800 hover:text-sky-700"
+              onClick={_ => {
+                setFocusedSectionKey(_ => Some(key))
+                setFocusedDivisionKey(_ => None)
+              }}
+            >
+              {React.string(section.title)}
+            </button>
+            <button
+              className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
+              onClick={_ => toggleExpanded(key)}
+            >
                 {React.string(isOpen ? "−" : "+")}
               </button>
             </div>
@@ -309,12 +350,20 @@ module ListView = {
 
       showHeaders
         ? <div key className={depth == 0 ? "" : "ml-4"}>
-            <div className="flex items-center gap-2 font-semibold text-stone-900">
-              <span> {React.string(division.title)} </span>
-              <button
-                className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
-                onClick={_ => toggleExpanded(key)}
-              >
+          <div className="flex items-center gap-2 font-semibold text-stone-900">
+            <button
+              className="text-left text-sm font-semibold text-stone-900 hover:text-sky-700"
+              onClick={_ => {
+                setFocusedDivisionKey(_ => Some(key))
+                setFocusedSectionKey(_ => None)
+              }}
+            >
+              {React.string(division.title)}
+            </button>
+            <button
+              className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
+              onClick={_ => toggleExpanded(key)}
+            >
                 {React.string(isOpen ? "−" : "+")}
               </button>
             </div>
@@ -390,34 +439,6 @@ module ListView = {
       </div>
     }
 
-    let rec renderDivisionNav = (division, keyPrefix) => {
-      let key = divisionKey(keyPrefix, division)
-      let hasChildren = division.children->Belt.Array.length > 0
-
-      <li key={key} className="my-1  text-sm text-stone-800">
-        <div className="flex items-center gap-2">
-          <button
-            className="text-left text-sm font-semibold text-stone-800 hover:text-sky-700"
-            onClick={_ => {
-              setFocusedDivisionKey(_ => Some(key))
-              setShowAllDivisions(_ => false)
-            }}
-          >
-            {React.string(division.title)}
-          </button>
-        </div>
-        {switch hasChildren {
-        | true =>
-          <ul className="ml-4 list-disc text-sm text-stone-800">
-            {division.children
-            ->Belt.Array.map(child => renderDivisionNav(child, key))
-            ->React.array}
-          </ul>
-        | false => React.null
-        }}
-      </li>
-    }
-
     let rec findDivisionByKey = (divisions, targetKey, prefix) =>
       divisions->Belt.Array.reduce(None, (acc, division) =>
         switch acc {
@@ -445,47 +466,19 @@ module ListView = {
       } else {
         divisions->Belt.Array.keepMap(filterDivision)
       }
-      switch focusedDivisionKey {
-      | None =>
-        showAllDivisions
-          ? <div className="rounded border-stone-100 bg-white p-4">
-              <div className="mb-4 flex items-center gap-3">
-                <button
-                  className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
-                  onClick={_ => setShowAllDivisions(_ => false)}
-                >
-                  {React.string("Divisions")}
-                </button>
-                <span className="text-sm font-semibold text-stone-800">
-                  {React.string("All divisions")}
-                </span>
-              </div>
-              {visibleDivisions
-              ->Belt.Array.map(division => renderDivision(division, "root", 0))
-              ->React.array}
-            </div>
-          : <div className="rounded border-stone-100 bg-white p-4">
-              <p className="mb-3 text-xs uppercase tracking-widest text-stone-500">
-                {React.string("Divisions")}
-              </p>
-              <ul className="list-disc">
-                {visibleDivisions
-                ->Belt.Array.map(division => renderDivisionNav(division, "root"))
-                ->React.array}
-              </ul>
-              <div className="mt-4">
-                <button
-                  className="rounded border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
-                  onClick={_ => {
-                    setShowAllDivisions(_ => true)
-                    setFocusedDivisionKey(_ => None)
-                  }}
-                >
-                  {React.string("All (slow)")}
-                </button>
-              </div>
-            </div>
-      | Some(focusedKey) =>
+      switch (focusedDivisionKey, focusedSectionKey) {
+      | (None, None) =>
+        <div className="rounded border-stone-100 bg-white p-4">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="text-sm font-semibold text-stone-800">
+              {React.string("All divisions")}
+            </span>
+          </div>
+          {visibleDivisions
+          ->Belt.Array.map(division => renderDivision(division, "root", 0))
+          ->React.array}
+        </div>
+      | (Some(focusedKey), _) =>
         switch findDivisionByKey(visibleDivisions, focusedKey, "root") {
         | None =>
           <div className="rounded border-stone-100 bg-white p-4 text-sm text-stone-600">
@@ -498,7 +491,7 @@ module ListView = {
                 className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
                 onClick={_ => {
                   setFocusedDivisionKey(_ => None)
-                  setShowAllDivisions(_ => false)
+                  setFocusedSectionKey(_ => None)
                 }}
               >
                 {React.string("All divisions")}
@@ -508,6 +501,31 @@ module ListView = {
               </span>
             </div>
             {renderFocusedDivision(division, prefix)}
+          </div>
+        }
+      | (None, Some(focusedKey)) =>
+        switch findSectionByKey(visibleDivisions, focusedKey, "root") {
+        | None =>
+          <div className="rounded border-stone-100 bg-white p-4 text-sm text-stone-600">
+            {React.string("That section is no longer available.")}
+          </div>
+        | Some((section, prefix)) =>
+          <div className="rounded border-stone-100 bg-white">
+            <div className="mb-4 flex items-center gap-3">
+              <button
+                className="rounded border border-stone-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+                onClick={_ => {
+                  setFocusedSectionKey(_ => None)
+                  setFocusedDivisionKey(_ => None)
+                }}
+              >
+                {React.string("All divisions")}
+              </button>
+              <span className="text-sm font-semibold text-stone-800">
+                {React.string(section.title)}
+              </span>
+            </div>
+            {renderSection(section, prefix, 0)}
           </div>
         }
       }
@@ -543,7 +561,7 @@ let make = () => {
   )
   let (showHeaders, setShowHeaders) = React.useState(() => true)
   let (focusedDivisionKey, setFocusedDivisionKey) = React.useState(() => None)
-  let (showAllDivisions, setShowAllDivisions) = React.useState(() => false)
+  let (focusedSectionKey, setFocusedSectionKey) = React.useState(() => None)
   React.useEffect0(() => {
     Data.fetch("/vitals-level5.json")
     ->Promise.then(response =>
@@ -559,7 +577,7 @@ let make = () => {
       setExpanded(_ => Belt.Set.String.empty)
       setExpandedItems(_ => Belt.Set.String.empty)
       setFocusedDivisionKey(_ => None)
-      setShowAllDivisions(_ => false)
+      setFocusedSectionKey(_ => None)
       Promise.resolve()
     })
     ->Promise.catch(_ => {
@@ -622,22 +640,28 @@ let make = () => {
     )
 
   React.useEffect3(() => {
-    switch (focusedDivisionKey, divisions, showAllDivisions) {
-    | (_, Some(divisions), true) =>
-      setExpanded(_ => collectDivisionKeys(divisions, "root", Belt.Set.String.empty))
-      setExpandedItems(_ => collectDivisionItemKeys(divisions, "root", Belt.Set.String.empty))
-    | (Some(key), Some(divisions), false) =>
+    switch (divisions, focusedDivisionKey, focusedSectionKey) {
+    | (Some(divisions), None, None) =>
+      setExpanded(_ => collectTopDivisionKeys(divisions, "root", Belt.Set.String.empty))
+      setExpandedItems(_ => Belt.Set.String.empty)
+    | (Some(divisions), Some(key), _) =>
       switch findDivisionByKey(divisions, key, "root") {
       | None => ()
       | Some((division, prefix)) =>
         setExpanded(_ => collectDivisionKeys([division], prefix, Belt.Set.String.empty))
         setExpandedItems(_ => collectDivisionItemKeys([division], prefix, Belt.Set.String.empty))
       }
-    | (None, _, _) => ()
-    | (_, None, _) => ()
+    | (Some(divisions), None, Some(key)) =>
+      switch findSectionByKey(divisions, key, "root") {
+      | None => ()
+      | Some((section, prefix)) =>
+        setExpanded(_ => collectSectionKeys([section], prefix, Belt.Set.String.empty))
+        setExpandedItems(_ => collectAllItemKeys([section], prefix, Belt.Set.String.empty))
+      }
+    | (_, _, _) => ()
     }
     None
-  }, (focusedDivisionKey, divisions, showAllDivisions))
+  }, (divisions, focusedDivisionKey, focusedSectionKey))
 
   <div className="mx-auto max-w-5xl p-6">
     <div className="mb-8">
@@ -727,11 +751,11 @@ let make = () => {
       selectedLevels
       showHeaders
       focusedDivisionKey
-      showAllDivisions
+      focusedSectionKey
       setExpanded
       setExpandedItems
       setFocusedDivisionKey
-      setShowAllDivisions
+      setFocusedSectionKey
     />
   </div>
 }
