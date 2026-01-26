@@ -103,8 +103,13 @@ let make = () => {
   })
 
   React.useEffect1(() => {
-    let timeoutId = setTimeout(() => setDebouncedFilterText(_ => filterText), 500)
-    Some(() => clearTimeout(timeoutId))
+    if filterText == "" {
+      setDebouncedFilterText(_ => "")
+      None
+    } else {
+      let timeoutId = setTimeout(() => setDebouncedFilterText(_ => filterText), 500)
+      Some(() => clearTimeout(timeoutId))
+    }
   }, [filterText])
 
   let query = debouncedFilterText->String.toLowerCase

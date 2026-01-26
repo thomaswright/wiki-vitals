@@ -110,6 +110,10 @@ function App(props) {
     });
   }, []);
   React.useEffect(() => {
+    if (filterText === "") {
+      setDebouncedFilterText(param => "");
+      return;
+    }
     let timeoutId = setTimeout(() => setDebouncedFilterText(param => filterText), 500);
     return () => {
       clearTimeout(timeoutId);
