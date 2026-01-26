@@ -230,7 +230,7 @@ function App(props) {
       return setExpandedItems(param => collectDivisionItemKeys(divisions, "root", undefined));
     }
   };
-  let renderSection = (section, keyPrefix) => {
+  let renderSection = (section, keyPrefix, depth) => {
     let key = sectionKey(keyPrefix, section);
     let isOpen = Belt_SetString.has(expanded, key);
     if (showHeaders) {
@@ -256,13 +256,13 @@ function App(props) {
                     className: "ml-8 list-disc text-sm text-stone-700"
                   }) : null,
                 section.children.length !== 0 ? JsxRuntime.jsx("div", {
-                    children: Belt_Array.map(section.children, child => renderSection(child, key)),
+                    children: Belt_Array.map(section.children, child => renderSection(child, key, depth + 1 | 0)),
                     className: " border-stone-200"
                   }) : null
               ]
             }) : null
         ],
-        className: "ml-4"
+        className: depth === 0 ? "" : "ml-4"
       }, key);
     } else {
       return JsxRuntime.jsxs("div", {
@@ -272,7 +272,7 @@ function App(props) {
               className: "ml-4 list-disc text-sm text-stone-700"
             }) : null,
           section.children.length !== 0 ? JsxRuntime.jsx("div", {
-              children: Belt_Array.map(section.children, child => renderSection(child, key)),
+              children: Belt_Array.map(section.children, child => renderSection(child, key, depth + 1 | 0)),
               className: " border-stone-200"
             }) : null
         ]
@@ -301,7 +301,7 @@ function App(props) {
           isOpen ? JsxRuntime.jsxs("div", {
               children: [
                 division.sections.length !== 0 ? JsxRuntime.jsx("ul", {
-                    children: Belt_Array.map(division.sections, section => renderSection(section, key)),
+                    children: Belt_Array.map(division.sections, section => renderSection(section, key, 0)),
                     className: "ml-2 list-disc text-sm text-stone-700"
                   }) : null,
                 division.children.length !== 0 ? JsxRuntime.jsx("div", {
@@ -311,13 +311,13 @@ function App(props) {
               ]
             }) : null
         ],
-        className: "ml-2"
+        className: ""
       }, key);
     } else {
       return JsxRuntime.jsxs("div", {
         children: [
           division.sections.length !== 0 ? JsxRuntime.jsx("ul", {
-              children: Belt_Array.map(division.sections, section => renderSection(section, key)),
+              children: Belt_Array.map(division.sections, section => renderSection(section, key, 0)),
               className: "ml-4 list-disc text-sm text-stone-700"
             }) : null,
           division.children.length !== 0 ? JsxRuntime.jsx("div", {
@@ -333,7 +333,7 @@ function App(props) {
     return JsxRuntime.jsxs("div", {
       children: [
         division.sections.length !== 0 ? JsxRuntime.jsx("ul", {
-            children: Belt_Array.map(division.sections, section => renderSection(section, key)),
+            children: Belt_Array.map(division.sections, section => renderSection(section, key, 0)),
             className: "list-disc text-sm text-stone-700"
           }) : null,
         division.children.length !== 0 ? JsxRuntime.jsx("div", {
@@ -458,14 +458,6 @@ function App(props) {
           JsxRuntime.jsx("p", {
             children: "Wikipedia Vital Articles",
             className: "text-sm uppercase tracking-widest text-stone-500"
-          }),
-          JsxRuntime.jsx("h1", {
-            children: "Level 5 • Vital Articles",
-            className: "mt-2 text-4xl font-semibold text-stone-900"
-          }),
-          JsxRuntime.jsx("p", {
-            children: "Browse and expand sections from the Vital Articles list.",
-            className: "mt-2 text-stone-600"
           }),
           JsxRuntime.jsxs("div", {
             children: [

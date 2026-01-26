@@ -233,12 +233,12 @@ let make = () => {
     setExpandedItems(_ => Belt.Set.String.empty)
   }
 
-  let rec renderSection = (section: section, keyPrefix) => {
+  let rec renderSection = (section: section, keyPrefix, depth) => {
     let key = sectionKey(keyPrefix, section)
     let isOpen = expanded->Belt.Set.String.has(key)
 
     showHeaders
-      ? <div key className="ml-4">
+      ? <div key className={depth == 0 ? "" : "ml-4"}>
           <div className="flex items-center gap-2 font-semibold text-stone-800">
             <span> {React.string(section.title)} </span>
             <button
@@ -262,7 +262,7 @@ let make = () => {
               | true =>
                 <div className=" border-stone-200">
                   {section.children
-                  ->Belt.Array.map(child => renderSection(child, key))
+                  ->Belt.Array.map(child => renderSection(child, key, depth + 1))
                   ->React.array}
                 </div>
               | false => React.null
@@ -282,7 +282,9 @@ let make = () => {
           {switch section.children->Belt.Array.length > 0 {
           | true =>
             <div className=" border-stone-200">
-              {section.children->Belt.Array.map(child => renderSection(child, key))->React.array}
+              {section.children
+              ->Belt.Array.map(child => renderSection(child, key, depth + 1))
+              ->React.array}
             </div>
           | false => React.null
           }}
@@ -294,7 +296,7 @@ let make = () => {
     let isOpen = expanded->Belt.Set.String.has(key)
 
     showHeaders
-      ? <div key className="ml-2">
+      ? <div key className="">
           <div className="flex items-center gap-2 font-semibold text-stone-900">
             <span> {React.string(division.title)} </span>
             <button
@@ -311,7 +313,7 @@ let make = () => {
               | true =>
                 <ul className="ml-2 list-disc text-sm text-stone-700">
                   {division.sections
-                  ->Belt.Array.map(section => renderSection(section, key))
+                  ->Belt.Array.map(section => renderSection(section, key, 0))
                   ->React.array}
                 </ul>
               | false => React.null
@@ -334,7 +336,7 @@ let make = () => {
           | true =>
             <ul className="ml-4 list-disc text-sm text-stone-700">
               {division.sections
-              ->Belt.Array.map(section => renderSection(section, key))
+              ->Belt.Array.map(section => renderSection(section, key, 0))
               ->React.array}
             </ul>
           | false => React.null
@@ -359,7 +361,7 @@ let make = () => {
       | true =>
         <ul className={"list-disc text-sm text-stone-700"}>
           {division.sections
-          ->Belt.Array.map(section => renderSection(section, key))
+          ->Belt.Array.map(section => renderSection(section, key, 0))
           ->React.array}
         </ul>
       | false => React.null
@@ -437,12 +439,7 @@ let make = () => {
       <p className="text-sm uppercase tracking-widest text-stone-500">
         {React.string("Wikipedia Vital Articles")}
       </p>
-      <h1 className="mt-2 text-4xl font-semibold text-stone-900">
-        {React.string("Level 5 • Vital Articles")}
-      </h1>
-      <p className="mt-2 text-stone-600">
-        {React.string("Browse and expand sections from the Vital Articles list.")}
-      </p>
+
       <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
         <input
           value={filterText}
