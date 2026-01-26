@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as Belt_Array from "@rescript/runtime/lib/es6/Belt_Array.js";
 import * as Belt_SetInt from "@rescript/runtime/lib/es6/Belt_SetInt.js";
-import * as HistoryLevel5 from "./wiki/HistoryLevel5.res.mjs";
+import * as VitalLevel5 from "./wiki/VitalLevel5.res.mjs";
 import * as Belt_SetString from "@rescript/runtime/lib/es6/Belt_SetString.js";
 import * as Stdlib_Promise from "@rescript/runtime/lib/es6/Stdlib_Promise.js";
 import * as JsxRuntime from "react/jsx-runtime";
@@ -17,8 +17,8 @@ function App(props) {
     }
   };
   let match = React.useState(() => {});
-  let setSections = match[1];
-  let sections = match[0];
+  let setDivisions = match[1];
+  let divisions = match[0];
   let match$1 = React.useState(() => {});
   let setError = match$1[1];
   let error = match$1[0];
@@ -43,11 +43,11 @@ function App(props) {
   let match$6 = React.useState(() => true);
   let setShowHeaders = match$6[1];
   let showHeaders = match$6[0];
-  console.log(sections);
-  let collectKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
-    let key = prefix + "/" + section.title;
+  console.log(divisions);
+  let collectSectionKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
+    let key = prefix + "/section/" + section.title;
     let nextAcc = Belt_SetString.add(acc, key);
-    return collectKeys(section.children, key, nextAcc);
+    return collectSectionKeys(section.children, key, nextAcc);
   });
   let collectItemKeys = (items, prefix, acc) => Belt_Array.reduce(items, acc, (acc, item) => {
     let key = prefix + "/item/" + item.title;
@@ -55,17 +55,29 @@ function App(props) {
     return collectItemKeys(item.children, key, nextAcc);
   });
   let collectAllItemKeys = (sections, prefix, acc) => Belt_Array.reduce(sections, acc, (acc, section) => {
-    let nextAcc = collectItemKeys(section.items, prefix + "/" + section.title, acc);
-    return collectAllItemKeys(section.children, prefix + "/" + section.title, nextAcc);
+    let key = prefix + "/section/" + section.title;
+    let nextAcc = collectItemKeys(section.items, key, acc);
+    return collectAllItemKeys(section.children, key, nextAcc);
+  });
+  let collectDivisionKeys = (divisions, prefix, acc) => Belt_Array.reduce(divisions, acc, (acc, division) => {
+    let key = prefix + "/division/" + division.title;
+    let nextAcc = Belt_SetString.add(acc, key);
+    let nextSections = collectSectionKeys(division.sections, key, nextAcc);
+    return collectDivisionKeys(division.children, key, nextSections);
+  });
+  let collectDivisionItemKeys = (divisions, prefix, acc) => Belt_Array.reduce(divisions, acc, (acc, division) => {
+    let key = prefix + "/division/" + division.title;
+    let nextAcc = collectAllItemKeys(division.sections, key, acc);
+    return collectDivisionItemKeys(division.children, key, nextAcc);
   });
   React.useEffect(() => {
-    Stdlib_Promise.$$catch(HistoryLevel5.fetchSections().then(sections => {
-      setSections(param => sections);
-      setExpanded(param => collectKeys(sections, "root", undefined));
-      setExpandedItems(param => collectAllItemKeys(sections, "root", undefined));
+    Stdlib_Promise.$$catch(VitalLevel5.fetchDivisions().then(divisions => {
+      setDivisions(param => divisions);
+      setExpanded(param => collectDivisionKeys(divisions, "root", undefined));
+      setExpandedItems(param => collectDivisionItemKeys(divisions, "root", undefined));
       return Promise.resolve();
     }), param => {
-      setError(param => "Failed to load the History page.");
+      setError(param => "Failed to load the Vital Articles list.");
       return Promise.resolve();
     });
   }, []);
@@ -159,14 +171,47 @@ function App(props) {
       return;
     }
   };
+  let filterDivision = division => {
+    let titleMatch = division.title.toLowerCase().includes(query);
+    let sections = Belt_Array.keepMap(division.sections, filterSection);
+    let children = Belt_Array.keepMap(division.children, filterDivision);
+    if (query === "") {
+      if (sections.length !== 0 || children.length !== 0) {
+        return {
+          title: division.title,
+          href: division.href,
+          sections: sections,
+          children: children
+        };
+      } else {
+        return;
+      }
+    } else if (titleMatch || sections.length !== 0 || children.length !== 0) {
+      return {
+        title: division.title,
+        href: division.href,
+        sections: sections,
+        children: children
+      };
+    } else {
+      return;
+    }
+  };
+  let toggleExpanded = key => setExpanded(prev => {
+    if (Belt_SetString.has(prev, key)) {
+      return Belt_SetString.remove(prev, key);
+    } else {
+      return Belt_SetString.add(prev, key);
+    }
+  });
   let expandAll = () => {
-    if (sections !== undefined) {
-      setExpanded(param => collectKeys(sections, "root", undefined));
-      return setExpandedItems(param => collectAllItemKeys(sections, "root", undefined));
+    if (divisions !== undefined) {
+      setExpanded(param => collectDivisionKeys(divisions, "root", undefined));
+      return setExpandedItems(param => collectDivisionItemKeys(divisions, "root", undefined));
     }
   };
   let renderSection = (section, keyPrefix) => {
-    let key = keyPrefix + "/" + section.title;
+    let key = keyPrefix + "/section/" + section.title;
     let isOpen = Belt_SetString.has(expanded, key);
     if (showHeaders) {
       return JsxRuntime.jsxs("div", {
@@ -179,13 +224,7 @@ function App(props) {
               JsxRuntime.jsx("button", {
                 children: isOpen ? "−" : "+",
                 className: "rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300",
-                onClick: param => setExpanded(prev => {
-                  if (Belt_SetString.has(prev, key)) {
-                    return Belt_SetString.remove(prev, key);
-                  } else {
-                    return Belt_SetString.add(prev, key);
-                  }
-                })
+                onClick: param => toggleExpanded(key)
               })
             ],
             className: "flex items-center gap-2 font-semibold text-stone-800"
@@ -220,6 +259,55 @@ function App(props) {
       });
     }
   };
+  let renderDivision = (division, keyPrefix) => {
+    let key = keyPrefix + "/division/" + division.title;
+    let isOpen = Belt_SetString.has(expanded, key);
+    if (showHeaders) {
+      return JsxRuntime.jsxs("div", {
+        children: [
+          JsxRuntime.jsxs("div", {
+            children: [
+              JsxRuntime.jsx("span", {
+                children: division.title
+              }),
+              JsxRuntime.jsx("button", {
+                children: isOpen ? "−" : "+",
+                className: "rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300",
+                onClick: param => toggleExpanded(key)
+              })
+            ],
+            className: "flex items-center gap-2 font-semibold text-stone-900"
+          }),
+          isOpen ? JsxRuntime.jsxs("div", {
+              children: [
+                division.sections.length !== 0 ? JsxRuntime.jsx("ul", {
+                    children: Belt_Array.map(division.sections, section => renderSection(section, key)),
+                    className: "ml-6 list-disc text-sm text-stone-700"
+                  }) : null,
+                division.children.length !== 0 ? JsxRuntime.jsx("div", {
+                    children: Belt_Array.map(division.children, child => renderDivision(child, key)),
+                    className: "border-stone-200"
+                  }) : null
+              ]
+            }) : null
+        ],
+        className: "ml-2"
+      });
+    } else {
+      return JsxRuntime.jsxs("div", {
+        children: [
+          division.sections.length !== 0 ? JsxRuntime.jsx("ul", {
+              children: Belt_Array.map(division.sections, section => renderSection(section, key)),
+              className: "ml-4 list-disc text-sm text-stone-700"
+            }) : null,
+          division.children.length !== 0 ? JsxRuntime.jsx("div", {
+              children: Belt_Array.map(division.children, child => renderDivision(child, key)),
+              className: "border-stone-200"
+            }) : null
+        ]
+      });
+    }
+  };
   return JsxRuntime.jsxs("div", {
     children: [
       JsxRuntime.jsxs("div", {
@@ -229,7 +317,7 @@ function App(props) {
             className: "text-sm uppercase tracking-widest text-stone-500"
           }),
           JsxRuntime.jsx("h1", {
-            children: "Level 5 • History",
+            children: "Level 5 • Vital Articles",
             className: "mt-2 text-4xl font-semibold text-stone-900"
           }),
           JsxRuntime.jsx("p", {
@@ -301,11 +389,11 @@ function App(props) {
           children: error,
           className: "rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
         }) : (
-          sections !== undefined ? JsxRuntime.jsx("div", {
-              children: Belt_Array.map(Belt_Array.keepMap(sections, filterSection), section => renderSection(section, "root")),
+          divisions !== undefined ? JsxRuntime.jsx("div", {
+              children: Belt_Array.map(Belt_Array.keepMap(divisions, filterDivision), division => renderDivision(division, "root")),
               className: "  bg-white"
             }) : JsxRuntime.jsx("div", {
-              children: "Loading sections…",
+              children: "Loading divisions…",
               className: "text-sm text-stone-500"
             })
         )
