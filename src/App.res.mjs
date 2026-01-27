@@ -808,7 +808,7 @@ function App(props) {
       JsxRuntime.jsxs("div", {
         children: [
           JsxRuntime.jsx("p", {
-            children: "Wikipedia Vital Articles",
+            children: "Wikipedia Vital Articles Explorer",
             className: "text-sm uppercase tracking-widest text-stone-500"
           }),
           JsxRuntime.jsxs("div", {
@@ -925,6 +925,31 @@ function App(props) {
         setExpandedItems: setExpandedItems,
         setFocusedDivisionKey: setFocusedDivisionKey,
         setFocusedSectionKey: setFocusedSectionKey
+      }),
+      JsxRuntime.jsxs("div", {
+        children: [
+          JsxRuntime.jsxs("p", {
+            children: [
+              JsxRuntime.jsx("a", {
+                children: "Wikipedia Vital Articles (Level 5)",
+                className: "text-sky-700 hover:text-sky-900 underline decoration-sky-300",
+                href: "https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level/5",
+                rel: "noreferrer",
+                target: "_blank"
+              }),
+              " sourced Jan 2026."
+            ],
+            className: "mb-2"
+          }),
+          JsxRuntime.jsx("p", {
+            children: JsxRuntime.jsx("a", {
+              children: "Made by Thomas Wright & Codex",
+              className: "text-sky-700 hover:text-sky-900 underline decoration-sky-300",
+              href: "https://thomaswright.github.io/wiki-vitals/"
+            })
+          })
+        ],
+        className: "mt-8 border-t border-stone-200 pt-4 text-xs text-stone-500"
       })
     ],
     className: "mx-auto max-w-5xl p-6"

@@ -785,7 +785,7 @@ let make = () => {
   <div className="mx-auto max-w-5xl p-6">
     <div className="mb-8">
       <p className="text-sm uppercase tracking-widest text-stone-500">
-        {React.string("Wikipedia Vital Articles")}
+        {React.string("Wikipedia Vital Articles Explorer")}
       </p>
 
       <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
@@ -898,5 +898,26 @@ let make = () => {
       setFocusedDivisionKey
       setFocusedSectionKey
     />
+    <div className="mt-8 border-t border-stone-200 pt-4 text-xs text-stone-500">
+      <p className="mb-2">
+        <a
+          href="https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level/5"
+          target="_blank"
+          rel="noreferrer"
+          className="text-sky-700 hover:text-sky-900 underline decoration-sky-300"
+        >
+          {React.string("Wikipedia Vital Articles (Level 5)")}
+        </a>
+        {React.string(" sourced Jan 2026.")}
+      </p>
+      <p>
+        <a
+          href="https://thomaswright.github.io/wiki-vitals/"
+          className="text-sky-700 hover:text-sky-900 underline decoration-sky-300"
+        >
+          {React.string("Made by Thomas Wright & Codex")}
+        </a>
+      </p>
+    </div>
   </div>
 }
