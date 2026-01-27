@@ -296,7 +296,7 @@ function App$ListView(props) {
         }),
         link.children.length !== 0 && isOpen ? JsxRuntime.jsx("ul", {
             children: Belt_Array.map(link.children, child => renderLink(child, key)),
-            className: "ml-5 mt-2 list-disc text-sm text-stone-600"
+            className: "ml-5 list-disc text-sm text-stone-600"
           }) : null
       ],
       className: "my-1"

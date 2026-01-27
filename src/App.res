@@ -253,7 +253,7 @@ module ListView = {
         | true =>
           switch isOpen {
           | true =>
-            <ul className="ml-5 mt-2 list-disc text-sm text-stone-600">
+            <ul className="ml-5 list-disc text-sm text-stone-600">
               {link.children->Belt.Array.map(child => renderLink(child, key))->React.array}
             </ul>
           | false => React.null
@@ -342,9 +342,7 @@ module ListView = {
           } else {
             divisions->Belt.Array.keepMap(filterDivision)
           }
-          setExpanded(_ =>
-            collectDivisionKeys(visibleDivisions, "root", Belt.Set.String.empty)
-          )
+          setExpanded(_ => collectDivisionKeys(visibleDivisions, "root", Belt.Set.String.empty))
           setExpandedItems(_ =>
             collectDivisionItemKeys(visibleDivisions, "root", Belt.Set.String.empty)
           )
