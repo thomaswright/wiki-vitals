@@ -588,7 +588,7 @@ function App$ListView(props) {
         }),
         Belt_Array.map(visibleDivisions, division => renderDivision(division, "root", 0))
       ],
-      className: "rounded border-stone-100 bg-white p-4"
+      className: "rounded border-stone-100 bg-white"
     });
   }
   let match$1 = findSectionByKey(visibleDivisions, focusedSectionKey, "root");
@@ -800,11 +800,23 @@ function App(props) {
           }),
           JsxRuntime.jsxs("div", {
             children: [
-              JsxRuntime.jsx("input", {
-                className: "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none",
-                placeholder: "Filter sections or articles",
-                value: filterText,
-                onChange: event => setFilterText(param => event.target.value)
+              JsxRuntime.jsxs("div", {
+                children: [
+                  JsxRuntime.jsx("input", {
+                    className: "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 pr-10 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none",
+                    placeholder: "Filter sections or articles",
+                    value: filterText,
+                    onChange: event => setFilterText(param => event.target.value)
+                  }),
+                  filterText !== "" ? JsxRuntime.jsx("button", {
+                      children: "×",
+                      "aria-label": "Clear search",
+                      className: "absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-stone-500 hover:text-stone-700",
+                      type: "button",
+                      onClick: param => setFilterText(param => "")
+                    }) : null
+                ],
+                className: "relative w-full"
               }),
               match$5[0] ? JsxRuntime.jsx("span", {
                   children: "Loading…",
@@ -872,7 +884,7 @@ function App(props) {
                         type: "checkbox",
                         onChange: param => setShowHeaders(prev => !prev)
                       }),
-                      "hide headers"
+                      "hide divisions"
                     ],
                     className: "w-fit flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
                   })

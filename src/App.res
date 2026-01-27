@@ -561,7 +561,7 @@ module ListView = {
       }
       switch (focusedDivisionKey, focusedSectionKey) {
       | (None, None) =>
-        <div className="rounded border-stone-100 bg-white p-4">
+        <div className="rounded border-stone-100 bg-white">
           <div className="mb-4 flex items-center gap-3">
             <span className="text-sm font-semibold text-stone-800">
               {React.string("All divisions")}
@@ -770,12 +770,26 @@ let make = () => {
       </p>
 
       <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
-        <input
-          value={filterText}
-          placeholder="Filter sections or articles"
-          onChange={event => setFilterText(_ => (event->ReactEvent.Form.target)["value"])}
-          className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none"
-        />
+        <div className="relative w-full">
+          <input
+            value={filterText}
+            placeholder="Filter sections or articles"
+            onChange={event => setFilterText(_ => (event->ReactEvent.Form.target)["value"])}
+            className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 pr-10 text-sm text-stone-700 shadow-sm focus:border-sky-300 focus:outline-none"
+          />
+          {switch filterText != "" {
+          | true =>
+            <button
+              type_="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-stone-500 hover:text-stone-700"
+              onClick={_ => setFilterText(_ => "")}
+              ariaLabel="Clear search"
+            >
+              {React.string("×")}
+            </button>
+          | false => React.null
+          }}
+        </div>
         {switch showSlowFilterLabel {
         | true =>
           <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">
@@ -844,7 +858,7 @@ let make = () => {
               onChange={_ => setShowHeaders(prev => !prev)}
               className="h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300"
             />
-            {React.string("hide headers")}
+            {React.string("hide divisions")}
           </label>
         </div>
       </div>
