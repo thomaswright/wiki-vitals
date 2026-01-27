@@ -349,20 +349,20 @@ module ListView = {
 
       showHeaders
         ? <div key className={depth == 0 ? "" : "ml-4"}>
-          <div className="flex items-center gap-2 font-semibold text-stone-800">
-            <button
-              className="text-left text-sm font-semibold text-stone-800 hover:text-sky-700"
-              onClick={_ => {
-                setFocusedSectionKey(_ => Some(key))
-                setFocusedDivisionKey(_ => None)
-              }}
-            >
-              {React.string(section.title)}
-            </button>
-            <button
-              className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
-              onClick={_ => toggleExpanded(key)}
-            >
+            <div className="flex items-center gap-2 font-semibold text-stone-800">
+              <button
+                className="text-left text-sm font-semibold text-stone-800 hover:text-sky-700"
+                onClick={_ => {
+                  setFocusedSectionKey(_ => Some(key))
+                  setFocusedDivisionKey(_ => None)
+                }}
+              >
+                {React.string(section.title)}
+              </button>
+              <button
+                className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
+                onClick={_ => toggleExpanded(key)}
+              >
                 {React.string(isOpen ? "−" : "+")}
               </button>
             </div>
@@ -417,20 +417,20 @@ module ListView = {
 
       showHeaders
         ? <div key className={depth == 0 ? "" : "ml-4"}>
-          <div className="flex items-center gap-2 font-semibold text-stone-900">
-            <button
-              className="text-left text-sm font-semibold text-stone-900 hover:text-sky-700"
-              onClick={_ => {
-                setFocusedDivisionKey(_ => Some(key))
-                setFocusedSectionKey(_ => None)
-              }}
-            >
-              {React.string(division.title)}
-            </button>
-            <button
-              className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
-              onClick={_ => toggleExpanded(key)}
-            >
+            <div className="flex items-center gap-2 font-semibold text-stone-900">
+              <button
+                className="text-left text-sm font-semibold text-stone-900 hover:text-sky-700"
+                onClick={_ => {
+                  setFocusedDivisionKey(_ => Some(key))
+                  setFocusedSectionKey(_ => None)
+                }}
+              >
+                {React.string(division.title)}
+              </button>
+              <button
+                className="rounded border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600 hover:border-stone-300"
+                onClick={_ => toggleExpanded(key)}
+              >
                 {React.string(isOpen ? "−" : "+")}
               </button>
             </div>
@@ -521,30 +521,27 @@ module ListView = {
         </button>
         {crumbs
         ->Belt.Array.mapWithIndex((index, crumb) => {
-            let isLast = index == crumbCount - 1
-            <>
-              <span className="text-stone-400"> {React.string("›")} </span>
-              <button
-                className={
-                  "text-left text-sm font-semibold " ++ (
-                    isLast ? "text-stone-900" : "text-stone-700 hover:text-sky-700"
-                  )
-                }
-                onClick={_ =>
-                  switch crumb.kind {
-                  | "section" =>
-                    setFocusedSectionKey(_ => Some(crumb.key))
-                    setFocusedDivisionKey(_ => None)
-                  | _ =>
-                    setFocusedDivisionKey(_ => Some(crumb.key))
-                    setFocusedSectionKey(_ => None)
-                  }
-                }
-              >
-                {React.string(crumb.title)}
-              </button>
-            </>
-          })
+          let isLast = index == crumbCount - 1
+          <>
+            <span className="text-stone-400"> {React.string("›")} </span>
+            <button
+              className={"text-left text-sm font-semibold " ++ (
+                isLast ? "text-stone-900" : "text-stone-700 hover:text-sky-700"
+              )}
+              onClick={_ =>
+                switch crumb.kind {
+                | "section" =>
+                  setFocusedSectionKey(_ => Some(crumb.key))
+                  setFocusedDivisionKey(_ => None)
+                | _ =>
+                  setFocusedDivisionKey(_ => Some(crumb.key))
+                  setFocusedSectionKey(_ => None)
+                }}
+            >
+              {React.string(crumb.title)}
+            </button>
+          </>
+        })
         ->React.array}
       </div>
     }
@@ -582,13 +579,15 @@ module ListView = {
           </div>
         | Some((division, prefix)) =>
           let breadcrumb =
-            findDivisionPathByKey(visibleDivisions, focusedKey, "root")->Belt.Option.getWithDefault([
+            findDivisionPathByKey(
+              visibleDivisions,
+              focusedKey,
+              "root",
+            )->Belt.Option.getWithDefault([
               {title: division.title, key: focusedKey, kind: "division"},
             ])
           <div className="rounded border-stone-100 bg-white">
-            <div className="mb-4 flex items-center gap-3">
-              {renderBreadcrumb(breadcrumb)}
-            </div>
+            <div className="mb-4 flex items-center gap-3"> {renderBreadcrumb(breadcrumb)} </div>
             {renderFocusedDivision(division, prefix)}
           </div>
         }
@@ -604,9 +603,7 @@ module ListView = {
               {title: section.title, key: focusedKey, kind: "section"},
             ])
           <div className="rounded border-stone-100 bg-white">
-            <div className="mb-4 flex items-center gap-3">
-              {renderBreadcrumb(breadcrumb)}
-            </div>
+            <div className="mb-4 flex items-center gap-3"> {renderBreadcrumb(breadcrumb)} </div>
             {renderSection(section, prefix, 0)}
           </div>
         }
@@ -786,61 +783,69 @@ let make = () => {
           </span>
         | false => React.null
         }}
-        <label
-          className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
-        >
-          <input
-            type_="checkbox"
-            checked={includeChildrenOnMatch}
-            onChange={_ => setIncludeChildrenOnMatch(prev => !prev)}
-            className="h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300"
-          />
-          {React.string("And children")}
-        </label>
+
         <div className="flex flex-wrap gap-2">
-          {[1, 2, 3, 4, 5]
-          ->Belt.Array.map(level => {
-            let isSelected = selectedLevels->Belt.Set.Int.has(level)
-            <button
-              key={Int.toString(level)}
-              className={"rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wider " ++ (
-                isSelected
-                  ? "border-sky-300 bg-sky-50 text-sky-800"
-                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
-              )}
-              onClick={_ =>
-                setSelectedLevels(prev =>
-                  prev->Belt.Set.Int.has(level)
-                    ? prev->Belt.Set.Int.remove(level)
-                    : prev->Belt.Set.Int.add(level)
+          <div className="flex flex-wrap">
+            {[1, 2, 3, 4, 5]
+            ->Belt.Array.map(level => {
+              let isSelected = selectedLevels->Belt.Set.Int.has(level)
+              <button
+                key={Int.toString(level)}
+                className={"first:rounded-l last:rounded-r border px-3 py-2 text-xs font-semibold uppercase tracking-wider " ++ (
+                  isSelected
+                    ? "border-sky-300 bg-sky-50 text-sky-800"
+                    : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
                 )}
+                onClick={_ =>
+                  setSelectedLevels(prev =>
+                    prev->Belt.Set.Int.has(level)
+                      ? prev->Belt.Set.Int.remove(level)
+                      : prev->Belt.Set.Int.add(level)
+                  )}
+              >
+                {React.string("Level " ++ Int.toString(level))}
+              </button>
+            })
+            ->React.array}
+          </div>
+
+          <div className="flex flex-wrap">
+            <button
+              className="rounded-l border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+              onClick={_ => expandAll()}
             >
-              {React.string("Level " ++ Int.toString(level))}
+              {React.string("Expand all")}
             </button>
-          })
-          ->React.array}
-          <button
-            className={"rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wider " ++ (
-              showHeaders
-                ? "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
-                : "border-sky-300 bg-sky-50 text-sky-800"
-            )}
-            onClick={_ => setShowHeaders(prev => !prev)}
+            <button
+              className="rounded-r border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+              onClick={_ => collapseAll()}
+            >
+              {React.string("Collapse all")}
+            </button>
+          </div>
+          <label
+            className="w-fit flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
           >
-            {React.string(showHeaders ? "Hide headers" : "Show headers")}
-          </button>
-          <button
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
-            onClick={_ => expandAll()}
+            <input
+              type_="checkbox"
+              checked={includeChildrenOnMatch}
+              onChange={_ => setIncludeChildrenOnMatch(prev => !prev)}
+              className="h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300"
+            />
+            {React.string("incl. result desc.")}
+          </label>
+
+          <label
+            className="w-fit flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
           >
-            {React.string("Expand all")}
-          </button>
-          <button
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
-            onClick={_ => collapseAll()}
-          >
-            {React.string("Collapse all")}
-          </button>
+            <input
+              type_="checkbox"
+              checked={!showHeaders}
+              onChange={_ => setShowHeaders(prev => !prev)}
+              className="h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300"
+            />
+            {React.string("hide headers")}
+          </label>
         </div>
       </div>
     </div>

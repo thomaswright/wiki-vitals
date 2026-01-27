@@ -810,58 +810,71 @@ function App(props) {
                   children: "Loading…",
                   className: "text-xs font-semibold uppercase tracking-wider text-stone-500"
                 }) : null,
-              JsxRuntime.jsxs("label", {
-                children: [
-                  JsxRuntime.jsx("input", {
-                    className: "h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300",
-                    checked: includeChildrenOnMatch,
-                    type: "checkbox",
-                    onChange: param => setIncludeChildrenOnMatch(prev => !prev)
-                  }),
-                  "And children"
-                ],
-                className: "flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
-              }),
               JsxRuntime.jsxs("div", {
                 children: [
-                  Belt_Array.map([
-                    1,
-                    2,
-                    3,
-                    4,
-                    5
-                  ], level => {
-                    let isSelected = Belt_SetInt.has(selectedLevels, level);
-                    return JsxRuntime.jsx("button", {
-                      children: "Level " + level.toString(),
-                      className: "rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wider " + (
-                        isSelected ? "border-sky-300 bg-sky-50 text-sky-800" : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
-                      ),
-                      onClick: param => setSelectedLevels(prev => {
-                        if (Belt_SetInt.has(prev, level)) {
-                          return Belt_SetInt.remove(prev, level);
-                        } else {
-                          return Belt_SetInt.add(prev, level);
-                        }
+                  JsxRuntime.jsx("div", {
+                    children: Belt_Array.map([
+                      1,
+                      2,
+                      3,
+                      4,
+                      5
+                    ], level => {
+                      let isSelected = Belt_SetInt.has(selectedLevels, level);
+                      return JsxRuntime.jsx("button", {
+                        children: "Level " + level.toString(),
+                        className: "first:rounded-l last:rounded-r border px-3 py-2 text-xs font-semibold uppercase tracking-wider " + (
+                          isSelected ? "border-sky-300 bg-sky-50 text-sky-800" : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
+                        ),
+                        onClick: param => setSelectedLevels(prev => {
+                          if (Belt_SetInt.has(prev, level)) {
+                            return Belt_SetInt.remove(prev, level);
+                          } else {
+                            return Belt_SetInt.add(prev, level);
+                          }
+                        })
+                      }, level.toString());
+                    }),
+                    className: "flex flex-wrap"
+                  }),
+                  JsxRuntime.jsxs("div", {
+                    children: [
+                      JsxRuntime.jsx("button", {
+                        children: "Expand all",
+                        className: "rounded-l border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
+                        onClick: param => expandAll()
+                      }),
+                      JsxRuntime.jsx("button", {
+                        children: "Collapse all",
+                        className: "rounded-r border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
+                        onClick: param => collapseAll()
                       })
-                    }, level.toString());
+                    ],
+                    className: "flex flex-wrap"
                   }),
-                  JsxRuntime.jsx("button", {
-                    children: showHeaders ? "Hide headers" : "Show headers",
-                    className: "rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wider " + (
-                      showHeaders ? "border-stone-200 bg-white text-stone-600 hover:border-stone-300" : "border-sky-300 bg-sky-50 text-sky-800"
-                    ),
-                    onClick: param => setShowHeaders(prev => !prev)
+                  JsxRuntime.jsxs("label", {
+                    children: [
+                      JsxRuntime.jsx("input", {
+                        className: "h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300",
+                        checked: includeChildrenOnMatch,
+                        type: "checkbox",
+                        onChange: param => setIncludeChildrenOnMatch(prev => !prev)
+                      }),
+                      "incl. result desc."
+                    ],
+                    className: "w-fit flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
                   }),
-                  JsxRuntime.jsx("button", {
-                    children: "Expand all",
-                    className: "rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
-                    onClick: param => expandAll()
-                  }),
-                  JsxRuntime.jsx("button", {
-                    children: "Collapse all",
-                    className: "rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
-                    onClick: param => collapseAll()
+                  JsxRuntime.jsxs("label", {
+                    children: [
+                      JsxRuntime.jsx("input", {
+                        className: "h-4 w-4 rounded border-stone-300 text-sky-600 focus:ring-sky-300",
+                        checked: !showHeaders,
+                        type: "checkbox",
+                        onChange: param => setShowHeaders(prev => !prev)
+                      }),
+                      "hide headers"
+                    ],
+                    className: "w-fit flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
                   })
                 ],
                 className: "flex flex-wrap gap-2"
