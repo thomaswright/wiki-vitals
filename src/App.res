@@ -333,6 +333,27 @@ module ListView = {
       }
     }
 
+    React.useEffect4(() => {
+      if debouncedFilterText != "" {
+        switch divisions {
+        | Some(divisions) =>
+          let visibleDivisions = if query == "" && isAllLevelsSelected {
+            divisions
+          } else {
+            divisions->Belt.Array.keepMap(filterDivision)
+          }
+          setExpanded(_ =>
+            collectDivisionKeys(visibleDivisions, "root", Belt.Set.String.empty)
+          )
+          setExpandedItems(_ =>
+            collectDivisionItemKeys(visibleDivisions, "root", Belt.Set.String.empty)
+          )
+        | None => ()
+        }
+      }
+      None
+    }, (debouncedFilterText, divisions, selectedLevels, includeChildrenOnMatch))
+
     let toggleExpanded = key => {
       setExpanded(prev =>
         prev->Belt.Set.String.has(key)

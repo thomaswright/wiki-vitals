@@ -210,6 +210,7 @@ function App$ListView(props) {
   let expandedItems = props.expandedItems;
   let expanded = props.expanded;
   let includeChildrenOnMatch = props.includeChildrenOnMatch;
+  let debouncedFilterText = props.debouncedFilterText;
   let divisions = props.divisions;
   let error = props.error;
   let levelMatchesSelection = (selectedLevels, levelOpt) => {
@@ -219,7 +220,7 @@ function App$ListView(props) {
       return false;
     }
   };
-  let query = props.debouncedFilterText.toLowerCase();
+  let query = debouncedFilterText.toLowerCase();
   let isAllLevelsSelected = Belt_SetInt.size(selectedLevels) === 5;
   let itemMatches = item => {
     if (levelMatchesSelection(selectedLevels, item.level)) {
@@ -366,6 +367,18 @@ function App$ListView(props) {
       return;
     }
   };
+  React.useEffect(() => {
+    if (debouncedFilterText !== "" && divisions !== undefined) {
+      let visibleDivisions = query === "" && isAllLevelsSelected ? divisions : Belt_Array.keepMap(divisions, filterDivision);
+      setExpanded(param => collectDivisionKeys(visibleDivisions, "root", undefined));
+      setExpandedItems(param => collectDivisionItemKeys(visibleDivisions, "root", undefined));
+    }
+  }, [
+    debouncedFilterText,
+    divisions,
+    selectedLevels,
+    includeChildrenOnMatch
+  ]);
   let toggleExpanded = key => setExpanded(prev => {
     if (Belt_SetString.has(prev, key)) {
       return Belt_SetString.remove(prev, key);
