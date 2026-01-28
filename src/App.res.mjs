@@ -566,27 +566,34 @@ function App$ListView(props) {
   let visibleDivisions = query === "" && isAllLevelsSelected ? divisions : Belt_Array.keepMap(divisions, filterDivision);
   if (focusedDivisionKey !== undefined) {
     let match = findDivisionByKey(visibleDivisions, focusedDivisionKey, "root");
-    if (match === undefined) {
-      return JsxRuntime.jsx("div", {
-        children: "No articles here.",
-        className: "rounded border-stone-100 bg-white p-4 text-sm text-stone-600"
+    if (match !== undefined) {
+      let division = match[0];
+      let breadcrumb = Belt_Option.getWithDefault(findDivisionPathByKey(visibleDivisions, focusedDivisionKey, "root"), [{
+          title: division.title,
+          key: focusedDivisionKey,
+          kind: "division"
+        }]);
+      return JsxRuntime.jsxs("div", {
+        children: [
+          JsxRuntime.jsx("div", {
+            children: renderBreadcrumb(breadcrumb),
+            className: "mb-4 flex items-center gap-3"
+          }),
+          renderFocusedDivision(division, match[1])
+        ],
+        className: "rounded border-stone-100 bg-white"
       });
     }
-    let division = match[0];
-    let breadcrumb = Belt_Option.getWithDefault(findDivisionPathByKey(visibleDivisions, focusedDivisionKey, "root"), [{
-        title: division.title,
-        key: focusedDivisionKey,
-        kind: "division"
-      }]);
+    let crumbs = findDivisionPathByKey(divisions, focusedDivisionKey, "root");
     return JsxRuntime.jsxs("div", {
       children: [
-        JsxRuntime.jsx("div", {
-          children: renderBreadcrumb(breadcrumb),
-          className: "mb-4 flex items-center gap-3"
-        }),
-        renderFocusedDivision(division, match[1])
+        crumbs !== undefined ? JsxRuntime.jsx("div", {
+            children: renderBreadcrumb(crumbs),
+            className: "mb-3 text-sm font-semibold text-stone-800"
+          }) : null,
+        "No matches in the current filter."
       ],
-      className: "rounded border-stone-100 bg-white"
+      className: "rounded border-stone-100 bg-white p-4 text-sm text-stone-600"
     });
   }
   if (focusedSectionKey === undefined) {
@@ -605,27 +612,34 @@ function App$ListView(props) {
     });
   }
   let match$1 = findSectionByKey(visibleDivisions, focusedSectionKey, "root");
-  if (match$1 === undefined) {
-    return JsxRuntime.jsx("div", {
-      children: "That section is no longer available.",
-      className: "rounded border-stone-100 bg-white p-4 text-sm text-stone-600"
+  if (match$1 !== undefined) {
+    let section = match$1[0];
+    let breadcrumb$1 = Belt_Option.getWithDefault(findSectionPathByKey(visibleDivisions, focusedSectionKey, "root"), [{
+        title: section.title,
+        key: focusedSectionKey,
+        kind: "section"
+      }]);
+    return JsxRuntime.jsxs("div", {
+      children: [
+        JsxRuntime.jsx("div", {
+          children: renderBreadcrumb(breadcrumb$1),
+          className: "mb-4 flex items-center gap-3"
+        }),
+        renderSection(section, match$1[1], 0)
+      ],
+      className: "rounded border-stone-100 bg-white"
     });
   }
-  let section = match$1[0];
-  let breadcrumb$1 = Belt_Option.getWithDefault(findSectionPathByKey(visibleDivisions, focusedSectionKey, "root"), [{
-      title: section.title,
-      key: focusedSectionKey,
-      kind: "section"
-    }]);
+  let crumbs$1 = findSectionPathByKey(divisions, focusedSectionKey, "root");
   return JsxRuntime.jsxs("div", {
     children: [
-      JsxRuntime.jsx("div", {
-        children: renderBreadcrumb(breadcrumb$1),
-        className: "mb-4 flex items-center gap-3"
-      }),
-      renderSection(section, match$1[1], 0)
+      crumbs$1 !== undefined ? JsxRuntime.jsx("div", {
+          children: renderBreadcrumb(crumbs$1),
+          className: "mb-3 text-sm font-semibold text-stone-800"
+        }) : null,
+      "No matches in the current filter."
     ],
-    className: "rounded border-stone-100 bg-white"
+    className: "rounded border-stone-100 bg-white p-4 text-sm text-stone-600"
   });
 }
 

@@ -594,7 +594,14 @@ module ListView = {
         switch findDivisionByKey(visibleDivisions, focusedKey, "root") {
         | None =>
           <div className="rounded border-stone-100 bg-white p-4 text-sm text-stone-600">
-            {React.string("No articles here.")}
+            {switch findDivisionPathByKey(divisions, focusedKey, "root") {
+            | Some(crumbs) =>
+              <div className="mb-3 text-sm font-semibold text-stone-800">
+                {renderBreadcrumb(crumbs)}
+              </div>
+            | None => React.null
+            }}
+            {React.string("No matches in the current filter.")}
           </div>
         | Some((division, prefix)) =>
           let breadcrumb =
@@ -614,7 +621,14 @@ module ListView = {
         switch findSectionByKey(visibleDivisions, focusedKey, "root") {
         | None =>
           <div className="rounded border-stone-100 bg-white p-4 text-sm text-stone-600">
-            {React.string("That section is no longer available.")}
+            {switch findSectionPathByKey(divisions, focusedKey, "root") {
+            | Some(crumbs) =>
+              <div className="mb-3 text-sm font-semibold text-stone-800">
+                {renderBreadcrumb(crumbs)}
+              </div>
+            | None => React.null
+            }}
+            {React.string("No matches in the current filter.")}
           </div>
         | Some((section, prefix)) =>
           let breadcrumb =
