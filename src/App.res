@@ -661,7 +661,7 @@ let make = () => {
   let (focusedDivisionKey, setFocusedDivisionKey) = React.useState(() => None)
   let (focusedSectionKey, setFocusedSectionKey) = React.useState(() => None)
   React.useEffect0(() => {
-    Data.fetch("/vitals-level5.json")
+    Data.fetch("vitals-level5.json")
     ->Promise.then(response =>
       if Data.ok(response) {
         Data.json(response)
@@ -915,7 +915,7 @@ let make = () => {
           href="https://thomaswright.github.io/wiki-vitals/"
           className="text-sky-700 hover:text-sky-900 underline decoration-sky-300"
         >
-          {React.string("Made by Thomas Wright & Codex")}
+          {React.string("Made by Thomas Wright")}
         </a>
       </p>
     </div>

@@ -673,7 +673,7 @@ function App(props) {
   let setFocusedSectionKey = match$12[1];
   let focusedSectionKey = match$12[0];
   React.useEffect(() => {
-    Stdlib_Promise.$$catch(fetch("/vitals-level5.json").then(response => {
+    Stdlib_Promise.$$catch(fetch("vitals-level5.json").then(response => {
       if (response.ok) {
         return response.json();
       } else {
