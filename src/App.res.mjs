@@ -568,7 +568,7 @@ function App$ListView(props) {
     let match = findDivisionByKey(visibleDivisions, focusedDivisionKey, "root");
     if (match === undefined) {
       return JsxRuntime.jsx("div", {
-        children: "That division is no longer available.",
+        children: "No articles here.",
         className: "rounded border-stone-100 bg-white p-4 text-sm text-stone-600"
       });
     }
@@ -647,7 +647,7 @@ function App(props) {
   let isPending = match$4[0];
   let match$5 = React.useState(() => false);
   let setShowSlowFilterLabel = match$5[1];
-  let match$6 = React.useState(() => true);
+  let match$6 = React.useState(() => false);
   let setIncludeChildrenOnMatch = match$6[1];
   let includeChildrenOnMatch = match$6[0];
   let match$7 = React.useState(() => {});
@@ -837,41 +837,46 @@ function App(props) {
                 }) : null,
               JsxRuntime.jsxs("div", {
                 children: [
-                  JsxRuntime.jsx("div", {
-                    children: Belt_Array.map([
-                      1,
-                      2,
-                      3,
-                      4,
-                      5
-                    ], level => {
-                      let isSelected = Belt_SetInt.has(selectedLevels, level);
-                      return JsxRuntime.jsx("button", {
-                        children: "Level " + level.toString(),
-                        className: "first:rounded-l last:rounded-r border px-3 py-2 text-xs font-semibold uppercase tracking-wider " + (
-                          isSelected ? "border-sky-300 bg-sky-50 text-sky-800" : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
-                        ),
-                        onClick: param => setSelectedLevels(prev => {
-                          if (Belt_SetInt.has(prev, level)) {
-                            return Belt_SetInt.remove(prev, level);
-                          } else {
-                            return Belt_SetInt.add(prev, level);
-                          }
-                        })
-                      }, level.toString());
-                    }),
-                    className: "flex flex-wrap"
+                  JsxRuntime.jsxs("div", {
+                    children: [
+                      JsxRuntime.jsx("span", {
+                        children: "Levels "
+                      }),
+                      Belt_Array.map([
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                      ], level => {
+                        let isSelected = Belt_SetInt.has(selectedLevels, level);
+                        return JsxRuntime.jsx("button", {
+                          children: level.toString(),
+                          className: "rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wider " + (
+                            isSelected ? "border-sky-300 bg-sky-50 text-sky-800" : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
+                          ),
+                          onClick: param => setSelectedLevels(prev => {
+                            if (Belt_SetInt.has(prev, level)) {
+                              return Belt_SetInt.remove(prev, level);
+                            } else {
+                              return Belt_SetInt.add(prev, level);
+                            }
+                          })
+                        }, level.toString());
+                      })
+                    ],
+                    className: "flex flex-wrap gap-2 items-center"
                   }),
                   JsxRuntime.jsxs("div", {
                     children: [
                       JsxRuntime.jsx("button", {
                         children: "Expand all",
-                        className: "rounded-l border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
+                        className: "rounded-l-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
                         onClick: param => expandAll()
                       }),
                       JsxRuntime.jsx("button", {
                         children: "Collapse all",
-                        className: "rounded-r border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
+                        className: "rounded-r-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300",
                         onClick: param => collapseAll()
                       })
                     ],
@@ -902,7 +907,7 @@ function App(props) {
                     className: "w-fit flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-600"
                   })
                 ],
-                className: "flex flex-wrap gap-2"
+                className: "flex flex-wrap gap-2 items-center"
               })
             ],
             className: "mt-4 flex flex-col gap-3 md:flex-row md:items-center"
@@ -943,7 +948,7 @@ function App(props) {
           }),
           JsxRuntime.jsx("p", {
             children: JsxRuntime.jsx("a", {
-              children: "Made by Thomas Wright & Codex",
+              children: "Made by Thomas Wright",
               className: "text-sky-700 hover:text-sky-900 underline decoration-sky-300",
               href: "https://thomaswright.github.io/wiki-vitals/"
             })

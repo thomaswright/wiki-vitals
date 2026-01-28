@@ -594,7 +594,7 @@ module ListView = {
         switch findDivisionByKey(visibleDivisions, focusedKey, "root") {
         | None =>
           <div className="rounded border-stone-100 bg-white p-4 text-sm text-stone-600">
-            {React.string("That division is no longer available.")}
+            {React.string("No articles here.")}
           </div>
         | Some((division, prefix)) =>
           let breadcrumb =
@@ -651,7 +651,7 @@ let make = () => {
   let (debouncedFilterText, setDebouncedFilterText) = React.useState(() => "")
   let (isPending, startTransition) = React.useTransition()
   let (showSlowFilterLabel, setShowSlowFilterLabel) = React.useState(() => false)
-  let (includeChildrenOnMatch, setIncludeChildrenOnMatch) = React.useState(() => true)
+  let (includeChildrenOnMatch, setIncludeChildrenOnMatch) = React.useState(() => false)
   let (expanded, setExpanded) = React.useState(() => Belt.Set.String.empty)
   let (expandedItems, setExpandedItems) = React.useState(() => Belt.Set.String.empty)
   let (selectedLevels, setSelectedLevels) = React.useState(() =>
@@ -817,14 +817,15 @@ let make = () => {
         | false => React.null
         }}
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex flex-wrap">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span> {React.string("Levels ")} </span>
             {[1, 2, 3, 4, 5]
             ->Belt.Array.map(level => {
               let isSelected = selectedLevels->Belt.Set.Int.has(level)
               <button
                 key={Int.toString(level)}
-                className={"first:rounded-l last:rounded-r border px-3 py-2 text-xs font-semibold uppercase tracking-wider " ++ (
+                className={"rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wider " ++ (
                   isSelected
                     ? "border-sky-300 bg-sky-50 text-sky-800"
                     : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
@@ -836,7 +837,7 @@ let make = () => {
                       : prev->Belt.Set.Int.add(level)
                   )}
               >
-                {React.string("Level " ++ Int.toString(level))}
+                {React.string(Int.toString(level))}
               </button>
             })
             ->React.array}
@@ -844,13 +845,13 @@ let make = () => {
 
           <div className="flex flex-wrap">
             <button
-              className="rounded-l border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+              className="rounded-l-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
               onClick={_ => expandAll()}
             >
               {React.string("Expand all")}
             </button>
             <button
-              className="rounded-r border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
+              className="rounded-r-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 hover:border-stone-300"
               onClick={_ => collapseAll()}
             >
               {React.string("Collapse all")}
